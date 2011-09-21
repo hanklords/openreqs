@@ -1,3 +1,4 @@
+require 'sinatra'
 require 'haml'
 require 'creole'
 require 'mongo'
