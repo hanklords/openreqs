@@ -2,6 +2,7 @@ require 'sinatra'
 require 'haml'
 require 'creole'
 require 'mongo'
+require 'time'
 
 ROOT_PATH = ENV['HOME'] + '/openreqs/'
 DB = Mongo::Connection.new.db("openreqs")
@@ -16,6 +17,8 @@ class DocReqParser < Creole::Parser
   def make_explicit_anchor(uri, text)
     if req = DB["requirements"].find_one("_name" => uri)
       ReqParser.new(@doc, req).to_html
+    elsif doc = DB["docs"].find_one("_name" => uri)
+      super
     else
       super(escape_url(@doc["_name"]) + "/" + escape_url(uri) + "/add", text)
     end
@@ -49,6 +52,10 @@ end
 # web application
 
 before {content_type :html, :charset => 'utf-8'}
+
+get '/index' do
+  redirect to('/')
+end
 
 get '/' do
   doc = DB["docs"].find_one("_name" => 'index')
@@ -116,7 +123,7 @@ get '/:doc/:req/add' do
 end
 
 post '/:doc/:req/add' do
-  req = {"_name" => params[:req], "_content" => params[:content]}
+  req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.iso8601}
   DB["requirements"].insert req
   
   redirect to('/' + params[:doc])
@@ -131,8 +138,19 @@ end
 get '/:doc/:req/edit' do
   doc = DB["requirements"].find_one("_name" => params[:req])
   @_content = doc["_content"]
+  @attributes = doc.reject {|k,v| k =~ /^_/}
+  
   haml %q{
 %form(method="post")
+  %h2 Attributes
+  %ul
+    - @attributes.each do |k,v| 
+      %li #{k}: #{v}
+    %li
+      %input(name="key")
+      \:
+      %input(name="value")
+  %h2 Text
   %textarea(name="content" cols=80 rows=40)= @_content
   %p
   %input(type="submit" value="Sauver")
@@ -143,7 +161,11 @@ get '/:doc/:req/edit' do
 end
 
 post '/:doc/:req/edit' do
-  DB["requirements"].update({"_name" => params[:req]}, {"$set" => {"_content" => params[:content]}})
+  set, unset = {"_content" => params[:content]}, {}
+  set[params[:key]] = params[:value] if !params[:key].empty? && !params[:value].empty?
+  unset[params[:key]]= 1 if !params[:key].empty? && params[:value].empty?
+  
+  DB["requirements"].update({"_name" => params[:req]}, {"$set" => set, "$unset" => unset})
   
   redirect to('/' + params[:doc])
 end
