@@ -13,15 +13,29 @@ class DocReqParser < Creole::Parser
     super(@doc["_content"], options)
   end
   
+  def make_local_link(link)
+    if DB["requirements"].find_one("_name" => link)
+      super(link)
+    else
+      super("#{@doc["_name"]}/#{link}/add")
+    end
+  end
+  
   def make_explicit_anchor(uri, text)
-    if uri =~ /\.req$/ 
-      if req = DB["requirements"].find_one("_name" => uri)
-        ReqParser.new(req).to_html
-      else
-        "<a href=\"#{@doc["_name"]}/#{uri}/add\">#{uri}</a><br/>"
-      end
+    if uri =~ /\.req$/ and req = DB["requirements"].find_one("_name" => uri)
+      ReqParser.new(req).to_html
     else
       super
+    end
+  end
+end
+
+class IndexDocReqParser < DocReqParser
+  def make_local_link(link)
+    if DB["docs"].find_one("_name" => link)
+      escape_url(link)
+    else
+      escape_url(link) + "/add"
     end
   end
 end
@@ -45,28 +59,52 @@ end
 before {content_type :html, :charset => 'utf-8'}
 
 get '/' do
-  haml %q{
-%ul
-  - DB["docs"].find.each do |doc|
-    - name = doc['_name']
-    %li
-      %a(href=name)= name
-}
+  doc = DB["docs"].find_one("_name" => 'index')
+  return not_found if doc.nil?
+  
+  parser = IndexDocReqParser.new(doc)
+  "<a href=\"index/edit\">edit</a><br/>" + parser.to_html
+end
+
+post '/index/edit' do
+  p params[:content]
+  DB["docs"].update({"_name" => 'index'}, {"$set" => {"_content" => params[:content]}})
+  redirect to('/')
 end
 
 get '/:doc' do
   doc = DB["docs"].find_one("_name" => params[:doc])
+  return not_found if doc.nil?
   parser = DocReqParser.new(doc)
   "<a href=\"#{params[:doc]}/edit\">edit</a><br/>" + parser.to_html
 end
 
+get '/:doc/add' do
+    haml %q{
+%form(method="post")
+  %textarea(name="content" cols=80 rows=40)= @_content
+  %p
+  %input(type="submit" value="Sauver")
+}
+end
+
+post '/:doc/add' do
+  doc = {"_name" => params[:doc], "_content" => params[:content]}
+  DB["docs"].insert doc
+  
+  redirect to('/' + params[:doc])
+end
+
 get '/:doc/edit' do
+  cache_control :no_cache
   doc = DB["docs"].find_one("_name" => params[:doc])
+  return not_found if doc.nil?
+  
   @_content = doc["_content"]
+  p @_content
   haml %q{
 %form(method="post")
-  %textarea(name="content" cols=80 rows=40)
-    = @_content
+  %textarea(name="content" cols=80 rows=40)= @_content
   %p
   %input(type="submit" value="Sauver")
 }
@@ -80,8 +118,7 @@ end
 get '/:doc/:req/add' do
     haml %q{
 %form(method="post")
-  %textarea(name="content" cols=80 rows=40)
-    = @_content
+  %textarea(name="content" cols=80 rows=40)= @_content
   %p
   %input(type="submit" value="Sauver")
 }
@@ -105,8 +142,7 @@ get '/:doc/:req/edit' do
   @_content = doc["_content"]
   haml %q{
 %form(method="post")
-  %textarea(name="content" cols=80 rows=40)
-    = @_content
+  %textarea(name="content" cols=80 rows=40)= @_content
   %p
   %input(type="submit" value="Sauver")
   
