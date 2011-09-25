@@ -59,7 +59,10 @@ end
 
 get '/' do
   doc = DB["docs"].find_one("_name" => 'index')
-  return not_found if doc.nil?
+  if doc.nil?
+    doc = {"_name" => 'index', "_content" => ''}
+    DB["docs"].insert doc
+  end
   
   parser = IndexDocReqParser.new(doc["_content"])
   "<a href=\"index/edit\">edit</a><br/>" + parser.to_html
