@@ -110,7 +110,7 @@ post '/:doc/edit' do
 end
 
 get '/:doc/:req/add' do
-    haml :doc_req_add
+  haml :doc_req_add
 end
 
 post '/:doc/:req/add' do
