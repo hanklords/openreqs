@@ -36,23 +36,22 @@ class IndexDocReqParser < Creole::Parser
   end
 end
 
-class ReqParser < Creole::Parser
-  def initialize(doc, req, options = {})
+class ReqParser
+  Template = File.dirname(__FILE__) + '/views/default/req.haml'
+  def initialize(doc, req)
     @doc, @req = doc, req
-    @extensions = true
-    super(@req["_content"], options)
+    @engine = Haml::Engine.new(File.read(Template))
   end
 
   def to_html
+    content = Creole::Parser.new(@req["_content"], :extensions => true).to_html
     attributes = @req.reject {|k,v| k =~ /^_/}
-    "<h2>#{@req["_name"]}</h2><ul>" + 
-        "<a href=\"#{@doc["_name"]}/#{@req["_name"]}/edit\">edit</a><br/>" + 
-        attributes.map {|k,v| "<li>#{k}: #{v}</li>"}.join + "</ul>" + super
+    @engine.render(Object.new, {:doc => @doc["_name"],:name => @req["_name"], :attributes => attributes, :content => content})
   end
 end
 
 # web application
-
+set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
 
 get '/index' do
@@ -66,8 +65,9 @@ get '/' do
     DB["docs"].insert doc
   end
   
-  parser = IndexDocReqParser.new(doc["_content"])
-  "<a href=\"index/edit\">edit</a><br/>" + parser.to_html
+  @name = doc["_name"]
+  @content = IndexDocReqParser.new(doc["_content"]).to_html
+  haml :index
 end
 
 post '/index/edit' do
@@ -79,17 +79,13 @@ get '/:doc' do
   doc = DB["docs"].find_one("_name" => params[:doc])
   return not_found if doc.nil?
 
-  parser = DocReqParser.new(doc)
-  "<a href=\"#{params[:doc]}/edit\">edit</a><br/>" + parser.to_html
+  @name = doc["_name"]
+  @content = DocReqParser.new(doc).to_html
+  haml :doc
 end
 
 get '/:doc/add' do
-    haml %q{
-%form(method="post")
-  %textarea(name="content" cols=80 rows=40)= @_content
-  %p
-  %input(type="submit" value="Sauver")
-}
+  haml :doc_add
 end
 
 post '/:doc/add' do
@@ -104,13 +100,8 @@ get '/:doc/edit' do
   doc = DB["docs"].find_one("_name" => params[:doc])
   return not_found if doc.nil?
   
-  @_content = doc["_content"]
-  haml %q{
-%form(method="post")
-  %textarea(name="content" cols=80 rows=40)= @_content
-  %p
-  %input(type="submit" value="Sauver")
-}
+  @content = doc["_content"]
+  haml :doc_edit
 end
 
 post '/:doc/edit' do
@@ -119,12 +110,7 @@ post '/:doc/edit' do
 end
 
 get '/:doc/:req/add' do
-    haml %q{
-%form(method="post")
-  %textarea(name="content" cols=80 rows=40)= @_content
-  %p
-  %input(type="submit" value="Sauver")
-}
+    haml :doc_req_add
 end
 
 post '/:doc/:req/add' do
@@ -142,27 +128,10 @@ end
 
 get '/:doc/:req/edit' do
   doc = DB["requirements"].find_one("_name" => params[:req])
-  @_content = doc["_content"]
+  @content = doc["_content"]
   @attributes = doc.reject {|k,v| k =~ /^_/}
   
-  haml %q{
-%form(method="post")
-  %h2 Attributes
-  %ul
-    - @attributes.each do |k,v| 
-      %li #{k}: #{v}
-    %li
-      %input(name="key")
-      \:
-      %input(name="value")
-  %h2 Text
-  %textarea(name="content" cols=80 rows=40)= @_content
-  %p
-  %input(type="submit" value="Sauver")
-  
-%form(method="post" action="delete")
-  %input(type="submit" value="Supprimer")
-}
+  haml :doc_req_edit
 end
 
 post '/:doc/:req/edit' do

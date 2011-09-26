@@ -1,0 +1,7 @@
+%h2= name
+%a(href="#{doc}/#{name}/edit") edit
+%br
+%ul
+  - attributes.map do |k,v| 
+    %li #{k}: #{v}
+= content
