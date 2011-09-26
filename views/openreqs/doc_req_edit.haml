@@ -1,16 +1,18 @@
-%form(method="post")
-  %h2 Attributes
-  %ul
-    - @attributes.each do |k,v| 
-      %li #{k}: #{v}
-    %li
-      %input(name="key")
-      \:
-      %input(name="value")
-  %h2 Text
-  %textarea(name="content" cols=80 rows=40)= @content
-  %p
-  %input(type="submit" value="Sauver")
-  
-%form(method="post" action="delete")
-  %input(type="submit" value="Supprimer")
+%html
+  %body
+    %form(method="post")
+      %h2 Attributes
+      %ul
+        - @attributes.each do |k,v| 
+          %li #{k}: #{v}
+        %li
+          %input(name="key")
+          \:
+          %input(name="value")
+      %h2 Text
+      %textarea(name="content" cols=80 rows=40)= @content
+      %p
+      %input(type="submit" value="Sauver")
+      
+    %form(method="post" action="delete")
+      %input(type="submit" value="Supprimer")
