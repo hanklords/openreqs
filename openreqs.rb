@@ -11,6 +11,7 @@ DB = Mongo::Connection.new.db("openreqs")
 class DocReqParser < Creole::Parser
   def initialize(doc, options = {})
     @doc = doc
+    @extensions = true
     super(@doc["_content"], options)
   end
   
@@ -38,6 +39,7 @@ end
 class ReqParser < Creole::Parser
   def initialize(doc, req, options = {})
     @doc, @req = doc, req
+    @extensions = true
     super(@req["_content"], options)
   end
 
