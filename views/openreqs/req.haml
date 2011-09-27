@@ -1,7 +1,15 @@
-%h2= name
-%a(href="#{doc}/#{name}/edit") edit
-%br
-%ul
-  - attributes.map do |k,v| 
-    %li #{k}: #{v}
-= content
+.req
+  %h2
+    %a(name="req-#{name}")= name
+  %a(href="#{doc}/#{name}/edit") edit
+  %br
+  %ul
+    - if date = attributes["date"]
+      %li date: #{date.strftime('%Y-%m-%d')}
+    - if rationale = attributes["rationale"]
+      %li rationale: #{rationale}
+    - if satisfies = attributes["satisfies"]
+      %li 
+        satisfies:
+        %a(href="#{doc}#req-#{satisfies}")= satisfies
+  = content
