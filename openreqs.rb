@@ -50,12 +50,6 @@ class DocReqParser < Creole::Parser
   end
 end
 
-class AttributeReqParser
-  attr_reader :content
-  def initialize(content); @content = content end
-  def to_html; DocReqParser.new(@content.to_s).to_html end
-end
-
 class ReqParser
   Template = File.dirname(__FILE__) + '/views/default/req_inline.haml'
   def initialize(req)
