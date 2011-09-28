@@ -48,7 +48,8 @@ class DocReqParser < Creole::Parser
     }
   end
   
-  def parse_block(*args)
+  # Ugly hack so the parser does not enclose the resulting html in "<p>...</p> tags"
+  def parse_block(*args) 
     @p = true
     super
   end
