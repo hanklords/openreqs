@@ -157,7 +157,7 @@ get '/:doc/req_add' do
 end
 
 post '/:doc/req_add' do
-  req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.iso8601}
+  req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.iso8601}
   DB["requirements"].insert req
   
   redirect to('/' + params[:doc])
@@ -182,8 +182,7 @@ post '/:doc/edit', :mode => :req do
   set, unset = {"_content" => params[:content]}, {}
   set[params[:key]] = params[:value] if !params[:key].empty? && !params[:value].empty?
   unset[params[:key]]= 1 if !params[:key].empty? && params[:value].empty?
-  
-  DB["requirements"].update({"_name" => params[:req]}, {"$set" => set, "$unset" => unset})
+  DB["requirements"].update({"_name" => params[:doc]}, {"$set" => set, "$unset" => unset})
   
   redirect to('/' + params[:doc])
 end
