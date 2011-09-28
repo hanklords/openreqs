@@ -23,19 +23,14 @@ class DocReqParser < Creole::Parser
       case method
       when :req_inline
         if req = DB["requirements"].find_one("_name" => uri)
-          break ReqParser.new(req, @options[:context]).to_html
+          break ReqParser.new(req).to_html
         end
       when :doc
         if doc = DB["docs"].find_one("_name" => uri)
           break super(uri, text)
         end
       when :new_req
-        if context = @options[:context]
-          context_name = context["_name"]
-        else
-          context_name = 'index'
-        end
-        uri = escape_url(context_name) + "/" + escape_url(uri) + "/add"
+        uri = escape_url(uri) + "/add_req"
         break super(uri, text)
       when :new_doc
         uri = escape_url(uri) + "/add"
@@ -62,9 +57,9 @@ class AttributeReqParser
 end
 
 class ReqParser
-  Template = File.dirname(__FILE__) + '/views/default/req.haml'
-  def initialize(req, doc = nil)
-    @req, @doc = req, doc
+  Template = File.dirname(__FILE__) + '/views/default/req_inline.haml'
+  def initialize(req)
+    @req = req
     @engine = Haml::Engine.new(File.read(Template))
     @parser = DocReqParser.new(@req["_content"])
     @attributes = {}
@@ -75,17 +70,38 @@ class ReqParser
       next if k =~ /^_/
       @attributes[k] = DocReqParser.new(v)
     }
-    
   end
 
   def to_html
-    @engine.render(Object.new, {:doc => @doc["_name"],:name => @req["_name"], :attributes => @attributes, :content => @parser.to_html})
+    @engine.render(Object.new, {:name => @req["_name"], :attributes => @attributes, :content => @parser.to_html})
   end
 end
 
 # web application
 set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
+
+set(:mode) do |mode| 
+  condition {
+    case mode
+    when :doc
+      !@doc.nil?
+    when :req
+      !@req.nil?
+    else
+      false
+    end
+  }
+end
+
+['/:doc', '/:doc/edit'].each {|path|
+  before path do
+    @doc = DB["docs"].find_one("_name" => params[:doc])
+    if @doc.nil?
+      @req = DB["requirements"].find_one("_name" => params[:doc])
+    end
+  end
+}
 
 get '/index' do
   redirect to('/')
@@ -99,7 +115,7 @@ get '/' do
   end
   
   @name = doc["_name"]
-  @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc], :context => doc).to_html
+  @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc]).to_html
   haml :index
 end
 
@@ -108,12 +124,9 @@ post '/index/edit' do
   redirect to('/')
 end
 
-get '/:doc' do
-  doc = DB["docs"].find_one("_name" => params[:doc])
-  return not_found if doc.nil?
-
-  @name = doc["_name"]
-  @content = DocReqParser.new(doc["_content"], :find_local_link => [:req_inline, :doc, :new_req], :context => doc).to_html
+get '/:doc', :mode => :doc do
+  @name = @doc["_name"]
+  @content = DocReqParser.new(@doc["_content"], :find_local_link => [:req_inline, :doc, :new_req]).to_html
   haml :doc
 end
 
@@ -128,46 +141,44 @@ post '/:doc/add' do
   redirect to('/' + params[:doc])
 end
 
-get '/:doc/edit' do
+get '/:doc/edit', :mode => :doc do
   cache_control :no_cache
-  doc = DB["docs"].find_one("_name" => params[:doc])
-  return not_found if doc.nil?
-  
-  @content = doc["_content"]
+  @content = @doc["_content"]
   haml :doc_edit
 end
 
-post '/:doc/edit' do
+post '/:doc/edit', :mode => :doc do
   DB["docs"].update({"_name" => params[:doc]}, {"$set" => {"_content" => params[:content]}})
   redirect to('/' + params[:doc])
 end
 
-get '/:doc/:req/add' do
+get '/:doc/req_add' do
   haml :doc_req_add
 end
 
-post '/:doc/:req/add' do
+post '/:doc/req_add' do
   req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.iso8601}
   DB["requirements"].insert req
   
   redirect to('/' + params[:doc])
 end
 
-post '/:doc/:req/delete' do
-  DB["requirements"].remove("_name" => params[:req])
+get '/:doc', :mode => :req do
+  @name = @req["_name"]
+  @content = ReqParser.new(@req)
   
-  redirect to('/' + params[:doc])
+  @content.to_html
 end
 
-get '/:doc/:req/edit' do
-  doc = DB["requirements"].find_one("_name" => params[:req])
-  @content = doc["_content"]
-  @attributes = doc.reject {|k,v| k =~ /^_/}
+get '/:doc/edit', :mode => :req do
+  cache_control :no_cache
+  @content = @req["_content"]
+  @attributes = @req.reject {|k,v| k =~ /^_/}
   
   haml :doc_req_edit
 end
 
-post '/:doc/:req/edit' do
+post '/:doc/edit', :mode => :req do
   set, unset = {"_content" => params[:content]}, {}
   set[params[:key]] = params[:value] if !params[:key].empty? && !params[:value].empty?
   unset[params[:key]]= 1 if !params[:key].empty? && params[:value].empty?
