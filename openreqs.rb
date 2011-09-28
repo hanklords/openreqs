@@ -36,6 +36,8 @@ class DocReqParser < Creole::Parser
         break super(uri, text)
       when :default
         break super(uri, text)
+      else
+        raise "Unrecognized local link find method : #{method}"
       end
     }
   end
