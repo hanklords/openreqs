@@ -10,29 +10,42 @@ DB = Mongo::Connection.new.db("openreqs")
 # Creole extensions
 class DocReqParser < Creole::Parser
   def initialize(doc, options = {})
-    @doc = doc
-    @extensions = true
-    super(@doc["_content"], options)
+    @doc, @options = doc, options
+    @options[:find_local_link] ||= []
+    @options[:find_local_link] << :default
+    @extensions = @no_escape = true
+    super(@doc["_content"])
   end
   
   def make_explicit_anchor(uri, text)
-    if req = DB["requirements"].find_one("_name" => uri)
-      ReqParser.new(@doc, req).to_html
-    elsif doc = DB["docs"].find_one("_name" => uri)
-      super
-    else
-      super(escape_url(@doc["_name"]) + "/" + escape_url(uri) + "/add", text)
-    end
-  end
-end
-
-class IndexDocReqParser < Creole::Parser
-  def make_local_link(link)
-    if DB["docs"].find_one("_name" => link)
-      escape_url(link)
-    else
-      escape_url(link) + "/add"
-    end
+    ret = ""
+    @options[:find_local_link].each { |method|
+      case method
+      when :req_inline
+        if req = DB["requirements"].find_one("_name" => uri)
+          ret = ReqParser.new(@doc, req).to_html
+          break
+        end
+      when :doc
+        if doc = DB["docs"].find_one("_name" => uri)
+          ret = super(uri, text)
+          break
+        end
+      when :new_req
+        uri = escape_url(@doc["_name"]) + "/" + escape_url(uri) + "/add"
+        ret = super(uri, text)
+        break
+      when :new_doc
+        uri = escape_url(uri) + "/add"
+        ret = super(uri, text)
+        break
+      when :default
+        ret = super(uri, text)
+        break
+      end
+    }
+    
+    ret
   end
 end
 
@@ -69,7 +82,7 @@ get '/' do
   end
   
   @name = doc["_name"]
-  @content = IndexDocReqParser.new(doc["_content"]).to_html
+  @content = DocReqParser.new(doc, :find_local_link => [:doc, :new_doc]).to_html
   haml :index
 end
 
@@ -83,7 +96,7 @@ get '/:doc' do
   return not_found if doc.nil?
 
   @name = doc["_name"]
-  @content = DocReqParser.new(doc).to_html
+  @content = DocReqParser.new(doc, :find_local_link => [:req_inline, :doc, :new_req]).to_html
   haml :doc
 end
 
