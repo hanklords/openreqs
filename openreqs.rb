@@ -18,34 +18,26 @@ class DocReqParser < Creole::Parser
   end
   
   def make_explicit_anchor(uri, text)
-    ret = ""
     @options[:find_local_link].each { |method|
       case method
       when :req_inline
         if req = DB["requirements"].find_one("_name" => uri)
-          ret = ReqParser.new(@doc, req).to_html
-          break
+          break ReqParser.new(@doc, req).to_html
         end
       when :doc
         if doc = DB["docs"].find_one("_name" => uri)
-          ret = super(uri, text)
-          break
+          break super(uri, text)
         end
       when :new_req
         uri = escape_url(@doc["_name"]) + "/" + escape_url(uri) + "/add"
-        ret = super(uri, text)
-        break
+        break super(uri, text)
       when :new_doc
         uri = escape_url(uri) + "/add"
-        ret = super(uri, text)
-        break
+        break super(uri, text)
       when :default
-        ret = super(uri, text)
-        break
+        break super(uri, text)
       end
     }
-    
-    ret
   end
 end
 
