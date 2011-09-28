@@ -56,7 +56,7 @@ class ReqParser
   end
 
   def to_html
-    content = Creole::Parser.new(@req["_content"], :extensions => true).to_html
+    content = DocReqParser.new(@req["_content"]).to_html
     attributes = @req.reject {|k,v| k =~ /^_/}
     if attributes["date"]
       attributes["date"] = Time.xmlschema(attributes["date"]) rescue Time.parse(attributes["date"])
