@@ -9,6 +9,7 @@ DB = Mongo::Connection.new.db("openreqs")
 
 # Creole extensions
 class DocReqParser < Creole::Parser
+  attr_reader :content
   def initialize(content, options = {})
     @content, @options = content, options
     @options[:find_local_link] ||= []
@@ -46,6 +47,17 @@ class DocReqParser < Creole::Parser
       end
     }
   end
+  
+  def parse_block(*args)
+    @p = true
+    super
+  end
+end
+
+class AttributeReqParser
+  attr_reader :content
+  def initialize(content); @content = content end
+  def to_html; DocReqParser.new(@content.to_s).to_html end
 end
 
 class ReqParser
@@ -53,15 +65,20 @@ class ReqParser
   def initialize(req, doc = nil)
     @req, @doc = req, doc
     @engine = Haml::Engine.new(File.read(Template))
+    @parser = DocReqParser.new(@req["_content"])
+    @attributes = {}
+    if @req["date"]
+      @req["date"] = Time.xmlschema(@req["date"]) rescue Time.parse(@req["date"])
+    end
+    @req.each {|k,v|
+      next if k =~ /^_/
+      @attributes[k] = DocReqParser.new(v)
+    }
+    
   end
 
   def to_html
-    content = DocReqParser.new(@req["_content"]).to_html
-    attributes = @req.reject {|k,v| k =~ /^_/}
-    if attributes["date"]
-      attributes["date"] = Time.xmlschema(attributes["date"]) rescue Time.parse(attributes["date"])
-    end
-    @engine.render(Object.new, {:doc => @doc["_name"],:name => @req["_name"], :attributes => attributes, :content => content})
+    @engine.render(Object.new, {:doc => @doc["_name"],:name => @req["_name"], :attributes => @attributes, :content => @parser.to_html})
   end
 end
 
