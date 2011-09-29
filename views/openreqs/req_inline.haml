@@ -1,8 +1,8 @@
 .req
-  %h2
-    %a(name="req-#{name}")= name
-  %a(href="#{name}/edit") edit
-  %br
+  %strong
+    %a(href="#{name}/edit") #{name}
+  %p
+    = content
   %ul
     - if date = attributes["date"]
       %li date: #{date.content.strftime('%Y-%m-%d')}
@@ -12,5 +12,3 @@
       %li 
         satisfies:
         = satisfies.to_html
-  %p
-    = content
