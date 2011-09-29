@@ -146,11 +146,11 @@ post '/:doc/edit', :mode => :doc do
   redirect to('/' + params[:doc])
 end
 
-get '/:doc/req_add' do
+get '/:doc/add_req' do
   haml :doc_req_add
 end
 
-post '/:doc/req_add' do
+post '/:doc/add_req' do
   req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.iso8601}
   DB["requirements"].insert req
   
