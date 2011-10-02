@@ -1,5 +1,8 @@
 %html
-  %title= @name
+  %head
+    %title= @name
+    :css
+      .req ul li p {display: inline}
   %body
     %div
       %a(href="#{@name}/edit") edit

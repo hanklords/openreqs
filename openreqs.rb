@@ -1,6 +1,9 @@
+lib = File.expand_path('../lib/', __FILE__)
+$:.unshift lib unless $:.include?(lib)
+
 require 'sinatra'
 require 'haml'
-require 'creole'
+require 'creola/html'
 require 'mongo'
 require 'time'
 
@@ -8,17 +11,15 @@ ROOT_PATH = ENV['HOME'] + '/openreqs/'
 DB = Mongo::Connection.new.db("openreqs")
 
 # Creole extensions
-class DocReqParser < Creole::Parser
+class DocReqParser < CreolaHTML
   attr_reader :content
   def initialize(content, options = {})
-    @content, @options = content, options
+    super
     @options[:find_local_link] ||= []
     @options[:find_local_link] << :default
-    @extensions = @no_escape = true
-    super(content)
   end
   
-  def make_explicit_anchor(uri, text)
+  def link(uri, text, namespace)
     @options[:find_local_link].each { |method|
       case method
       when :req_inline
@@ -27,26 +28,20 @@ class DocReqParser < Creole::Parser
         end
       when :doc
         if doc = DB["docs"].find_one("_name" => uri)
-          break super(uri, text)
+          break super(uri, text, namespace)
         end
       when :new_req
-        uri = escape_url(uri) + "/add_req"
-        break super(uri, text)
+        uri = uri + "/add_req"
+        break super(uri, text, namespace)
       when :new_doc
-        uri = escape_url(uri) + "/add"
-        break super(uri, text)
+        uri = uri + "/add"
+        break super(uri, text, namespace)
       when :default
-        break super(uri, text)
+        break super(uri, text, namespace)
       else
         raise "Unrecognized local link find method : #{method}"
       end
     }
-  end
-  
-  # Ugly hack so the parser does not enclose the resulting html in "<p>...</p> tags"
-  def parse_block(*args) 
-    @p = true
-    super
   end
 end
 

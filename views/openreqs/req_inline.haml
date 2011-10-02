@@ -1,11 +1,10 @@
 .req
   %strong
     %a(href="#{name}/edit") #{name}
-  %p
-    = content
+  = content
   %ul
     - if date = attributes["date"]
-      %li date: #{date.content.strftime('%Y-%m-%d')}
+      %li date: #{date.text.strftime('%Y-%m-%d')}
     - if rationale = attributes["rationale"]
       %li rationale: #{rationale.to_html}
     - if satisfies = attributes["satisfies"]
