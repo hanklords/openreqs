@@ -30,6 +30,7 @@ class DocReqParser < CreolaHTML
           break super(uri, text, namespace)
         end
       when :new_req
+        text ||= uri
         uri = uri + "/add_req"
         break super(uri, text, namespace)
       when :new_doc
