@@ -52,9 +52,6 @@ class ReqParser
     @engine = Haml::Engine.new(File.read(Template))
     @parser = DocReqParser.new(@req["_content"])
     @attributes = {}
-    if @req["date"]
-      @req["date"] = Time.xmlschema(@req["date"]) rescue Time.parse(@req["date"])
-    end
     @req.each {|k,v|
       next if k =~ /^_/
       @attributes[k] = DocReqParser.new(v)
