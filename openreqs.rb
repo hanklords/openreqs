@@ -7,7 +7,6 @@ require 'creola/html'
 require 'mongo'
 require 'time'
 
-ROOT_PATH = ENV['HOME'] + '/openreqs/'
 DB = Mongo::Connection.new.db("openreqs")
 
 # Creole extensions
