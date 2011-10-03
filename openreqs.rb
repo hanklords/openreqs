@@ -22,7 +22,7 @@ class DocReqParser < CreolaHTML
     @options[:find_local_link].each { |method|
       case method
       when :req_inline
-        if req = DB["requirements"].find_one("_name" => uri)
+        if req = DB["requirements"].find_one({"_name" => uri}, {:sort => ["date", :desc]})
           break ReqParser.new(req).to_html
         end
       when :doc
@@ -84,7 +84,7 @@ end
   before path do
     @doc = DB["docs"].find_one("_name" => params[:doc])
     if @doc.nil?
-      @req = DB["requirements"].find_one("_name" => params[:doc])
+      @req = DB["requirements"].find_one({"_name" => params[:doc]}, {:sort => ["date", :desc]})
     end
   end
 }
@@ -143,7 +143,7 @@ get '/:doc/add_req' do
 end
 
 post '/:doc/add_req' do
-  req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.iso8601}
+  req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
   DB["requirements"].insert req
   
   redirect to('/' + params[:doc])
@@ -165,10 +165,18 @@ get '/:doc/edit', :mode => :req do
 end
 
 post '/:doc/edit', :mode => :req do
-  set, unset = {"_content" => params[:content]}, {}
-  set[params[:key]] = params[:value] if !params[:key].empty? && !params[:value].empty?
-  unset[params[:key]]= 1 if !params[:key].empty? && params[:value].empty?
-  DB["requirements"].update({"_name" => params[:doc]}, {"$set" => set, "$unset" => unset})
+  @req.delete "_id"
+  @req["date"] = Time.now.utc
+  @req["_content"] = params[:content]
+  if !params[:key].empty?
+    if !params[:value].empty?
+      @req[params[:key]] = params[:value]
+    else
+      @req.delete params[:key]
+    end
+  end
+  
+  DB["requirements"].save @req
   
   redirect to('/' + params[:doc])
 end
