@@ -80,7 +80,7 @@ set(:mode) do |mode|
   }
 end
 
-['/:doc', '/:doc/edit'].each {|path|
+['/:doc', '/:doc/*'].each {|path|
   before path do
     @doc = DB["docs"].find_one("_name" => params[:doc])
     if @doc.nil?
@@ -162,6 +162,22 @@ get '/:doc/edit', :mode => :req do
   @attributes = @req.reject {|k,v| k =~ /^_/}
   
   haml :doc_req_edit
+end
+
+get '/:doc/history', :mode => :req do
+  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date"}).map {|req| req["date"].iso8601}
+  
+  haml :req_history
+end
+
+get '/:doc/:date', :mode => :req do
+  date = Time.xmlschema(params[:date]) + 1
+  
+  @req = DB["requirements"].find_one({"_name" => params[:doc], "date" => {"$lte" => date}}, {:sort => ["date", :desc]})
+  @name = @req["_name"]
+  @content = ReqParser.new(@req)
+  
+  @content.to_html
 end
 
 post '/:doc/edit', :mode => :req do
