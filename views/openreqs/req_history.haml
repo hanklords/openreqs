@@ -1,4 +1,5 @@
+%h2= @name
 %ul
   - @dates.each do |date|
     %li
-      %a(href="./#{date}")= date
+      %a(href="./#{date.iso8601}")= date.strftime("%F %T")

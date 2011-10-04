@@ -171,7 +171,8 @@ get '/:doc/edit', :mode => :req do
 end
 
 get '/:doc/history', :mode => :req do
-  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"].iso8601}
+  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+  @name = params[:doc]
   
   haml :req_history
 end
