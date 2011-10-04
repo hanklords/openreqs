@@ -46,12 +46,14 @@ class DocReqParser < CreolaHTML
 end
 
 class ReqParser
-  Template = File.dirname(__FILE__) + '/views/default/req_inline.haml'
+  TEMPLATE = 'req_inline.haml'
+  
   attr_reader :name, :date, :attributes, :content
   def initialize(req, options = {})
     @req, @options = req, options
-    @engine = Haml::Engine.new(File.read(Template))
     @context = @options[:context]
+    @template = File.join(@context.settings.views, TEMPLATE)
+    @engine = Haml::Engine.new(File.read(@template))
     
     @content = DocReqParser.new(@req["_content"])
     @name = @req["_name"]
