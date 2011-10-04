@@ -1,13 +1,16 @@
 .req
   %strong
-    %a(href="#{name}/edit") #{name}
-  = content
+    - if @date
+      = @reqp.name
+      (on #{@date.strftime('%Y-%m-%d')})
+    - else
+      %a(href="#{@reqp.name}/edit")= @reqp.name
+  = @reqp.content.to_html
   %ul
-    - if date = attributes["date"]
-      %li date: #{date.text.strftime('%Y-%m-%d')}
-    - if rationale = attributes["rationale"]
+    %li date: #{@reqp.date.strftime('%Y-%m-%d')}
+    - if rationale = @reqp.attributes["rationale"]
       %li rationale: #{rationale.to_html}
-    - if satisfies = attributes["satisfies"]
+    - if satisfies = @reqp.attributes["satisfies"]
       %li 
         satisfies:
         = satisfies.to_html

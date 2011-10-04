@@ -23,7 +23,7 @@ class DocReqParser < CreolaHTML
       case method
       when :req_inline
         if req = DB["requirements"].find_one({"_name" => uri}, {:sort => ["date", :desc]})
-          break ReqParser.new(req).to_html
+          break ReqParser.new(req, :context => @options[:context]).to_html
         end
       when :doc
         if doc = DB["docs"].find_one("_name" => uri)
@@ -47,19 +47,26 @@ end
 
 class ReqParser
   Template = File.dirname(__FILE__) + '/views/default/req_inline.haml'
-  def initialize(req)
-    @req = req
+  attr_reader :name, :date, :attributes, :content
+  def initialize(req, options = {})
+    @req, @options = req, options
     @engine = Haml::Engine.new(File.read(Template))
-    @parser = DocReqParser.new(@req["_content"])
+    @context = @options[:context]
+    
+    @content = DocReqParser.new(@req["_content"])
+    @name = @req["_name"]
+    @date = @req["date"]
     @attributes = {}
     @req.each {|k,v|
       next if k =~ /^_/
+      next if k == "date"
       @attributes[k] = DocReqParser.new(v)
     }
   end
 
   def to_html
-    @engine.render(Object.new, {:name => @req["_name"], :attributes => @attributes, :content => @parser.to_html})
+    @context.instance_variable_set :@reqp, self
+    @engine.render(@context)
   end
 end
 
@@ -101,7 +108,7 @@ get '/' do
   end
   
   @name = doc["_name"]
-  @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc]).to_html
+  @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc], :context => self).to_html
   haml :index
 end
 
@@ -112,7 +119,7 @@ end
 
 get '/:doc', :mode => :doc do
   @name = @doc["_name"]
-  @content = DocReqParser.new(@doc["_content"], :find_local_link => [:req_inline, :doc, :new_req]).to_html
+  @content = DocReqParser.new(@doc["_content"], :find_local_link => [:req_inline, :doc, :new_req], :context => self).to_html
   haml :doc
 end
 
@@ -150,10 +157,7 @@ post '/:doc/add_req' do
 end
 
 get '/:doc', :mode => :req do
-  @name = @req["_name"]
-  @content = ReqParser.new(@req)
-  
-  @content.to_html
+  ReqParser.new(@req, :context => self).to_html
 end
 
 get '/:doc/edit', :mode => :req do
@@ -165,19 +169,16 @@ get '/:doc/edit', :mode => :req do
 end
 
 get '/:doc/history', :mode => :req do
-  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date"}).map {|req| req["date"].iso8601}
+  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"].iso8601}
   
   haml :req_history
 end
 
 get '/:doc/:date', :mode => :req do
-  date = Time.xmlschema(params[:date]) + 1
+  @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   
-  @req = DB["requirements"].find_one({"_name" => params[:doc], "date" => {"$lte" => date}}, {:sort => ["date", :desc]})
-  @name = @req["_name"]
-  @content = ReqParser.new(@req)
-  
-  @content.to_html
+  @req = DB["requirements"].find_one({"_name" => params[:doc], "date" => {"$lte" => @date}}, {:sort => ["date", :desc]})
+  ReqParser.new(@req, :context => self).to_html
 end
 
 post '/:doc/edit', :mode => :req do
