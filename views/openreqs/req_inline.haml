@@ -2,7 +2,7 @@
   %strong
     - if @date
       = @reqp.name
-      (on #{@date.strftime('%Y-%m-%d')})
+      (on #{@date.strftime('%F %T')})
     - else
       %a(href="#{@reqp.name}/edit")= @reqp.name
   = @reqp.content.to_html

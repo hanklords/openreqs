@@ -178,8 +178,9 @@ end
 
 get '/:doc/:date', :mode => :req do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  
   @req = DB["requirements"].find_one({"_name" => params[:doc], "date" => {"$lte" => @date}}, {:sort => ["date", :desc]})
+  not_found if @req.nil?
+  
   ReqParser.new(@req, :context => self).to_html
 end
 
