@@ -189,11 +189,17 @@ post '/:doc/add_req' do
 end
 
 get '/:doc', :mode => :req do
-  @all_docs = DB["docs"].find({}, {:fields => ["_name", "_content"], :sort => ["date", :desc]})
+  latest_doc = {}
+  DB["docs"].find({}, {:fields => ["_name", "date"], :sort => ["_name", :asc, "date", :asc]}).each {|doc|
+    latest_doc[doc["_name"]] ||= doc
+    latest_doc[doc["_name"]] = doc if doc["date"] > latest_doc[doc["_name"]]["date"]
+  }
+  latest = latest_doc.map {|k,v| v["_id"]}
+  
   @origin = []
-  @all_docs.each {|doc|
+  DB["docs"].find({"_id" => {"$in" => latest}}, {:fields => ["_name", "_content"]}).each {|doc|
     if CreolaExtractURL.new(doc["_content"]).to_a.include? params[:doc]
-      @origin << doc["_name"] unless @origin.include? doc["_name"]
+      @origin << doc["_name"]
     end
   }
   
