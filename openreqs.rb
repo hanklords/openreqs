@@ -14,6 +14,7 @@ class DocReqParser < CreolaHTML
   attr_reader :content
   def initialize(content, options = {})
     super
+    @options[:date] ||= Time.now.utc + 1
     @options[:find_local_link] ||= []
     @options[:find_local_link] << :default
   end
@@ -22,7 +23,7 @@ class DocReqParser < CreolaHTML
     @options[:find_local_link].each { |method|
       case method
       when :req_inline
-        if req = DB["requirements"].find_one({"_name" => uri}, {:sort => ["date", :desc]})
+        if req = DB["requirements"].find_one({"_name" => uri, "date" => {"$lte" => @options[:date]}}, {:sort => ["date", :desc]})
           break ReqParser.new(req, :context => @options[:context]).to_html
         end
       when :doc
@@ -34,6 +35,7 @@ class DocReqParser < CreolaHTML
         uri = uri + "/add_req"
         break super(uri, text, namespace)
       when :new_doc
+        text ||= uri
         uri = uri + "/add"
         break super(uri, text, namespace)
       when :default
@@ -91,7 +93,7 @@ end
 
 ['/:doc', '/:doc/*'].each {|path|
   before path do
-    @doc = DB["docs"].find_one("_name" => params[:doc])
+    @doc = DB["docs"].find_one({"_name" => params[:doc]}, {:sort => ["date", :desc]})
     if @doc.nil?
       @req = DB["requirements"].find_one({"_name" => params[:doc]}, {:sort => ["date", :desc]})
     end
@@ -112,11 +114,6 @@ get '/' do
   @name = doc["_name"]
   @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc], :context => self).to_html
   haml :index
-end
-
-post '/index/edit' do
-  DB["docs"].update({"_name" => 'index'}, {"$set" => {"_content" => params[:content]}})
-  redirect to('/')
 end
 
 get '/:doc', :mode => :doc do
@@ -143,8 +140,28 @@ get '/:doc/edit', :mode => :doc do
 end
 
 post '/:doc/edit', :mode => :doc do
-  DB["docs"].update({"_name" => params[:doc]}, {"$set" => {"_content" => params[:content]}})
+  @doc.delete "_id"
+  @doc["date"] = Time.now.utc
+  @doc["_content"] = params[:content]
+  DB["docs"].save @doc
+
   redirect to('/' + params[:doc])
+end
+
+get '/:doc/history', :mode => :doc do
+  @dates = DB["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+  @name = params[:doc]
+  
+  haml :doc_history
+end
+
+get '/:doc/:date', :mode => :doc do
+  @date = Time.xmlschema(params[:date]) + 1 rescue not_found
+  @doc = DB["docs"].find_one({"_name" => params[:doc], "date" => {"$lte" => @date}}, {:sort => ["date", :desc]})
+  not_found if @doc.nil?
+  @content = DocReqParser.new(@doc["_content"], :find_local_link => [:req_inline, :doc], :context => self, :date => @date).to_html
+
+  haml :doc
 end
 
 get '/:doc/add_req' do
