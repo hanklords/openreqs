@@ -162,7 +162,13 @@ post '/:doc/edit', :mode => :doc do
 end
 
 get '/:doc/history', :mode => :doc do
-  @dates = DB["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+  @dates = DB["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
+  req_names = CreolaExtractURL.new(@doc["_content"]).to_a
+  @dates.concat DB["requirements"].find({
+    "_name" => {"$in" => req_names},
+    "date"=> {"$gt" => @dates[0]}
+   }, {:fields => "date"}).map {|req| req["date"]}
+  @dates = @dates.sort.reverse
   @name = params[:doc]
   
   haml :doc_history

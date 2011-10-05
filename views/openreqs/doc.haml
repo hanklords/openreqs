@@ -4,8 +4,9 @@
     :css
       .req ul li p {display: inline}
   %body
-    %div
-      %a(href="#{@name}/edit") Edit the document
+    - if @date.nil?
+      %div
+        %a(href="#{@name}/edit") Edit the document
     - if @name != "index"
       %div
         %a{:href => to("/index")} Return to Summary
