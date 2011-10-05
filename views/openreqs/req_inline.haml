@@ -15,3 +15,8 @@
       %li 
         satisfies:
         = satisfies.to_html
+    - if @origin
+      %li
+        origin:
+        - @origin.each do |doc|
+          %a(href=doc)= doc

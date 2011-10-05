@@ -10,6 +10,15 @@ require 'time'
 DB = Mongo::Connection.new.db("openreqs")
 
 # Creole extensions
+class CreolaExtractURL < Creola
+  def initialize(*args);  super; @links = [] end
+  alias :to_a :render
+    
+  private
+  def root(content); @links end
+  def link(url, text, namespace); @links << url end
+end
+
 class DocReqParser < CreolaHTML
   attr_reader :content
   def initialize(content, options = {})
@@ -100,6 +109,10 @@ end
   end
 }
 
+get '' do
+  redirect to('/')
+end
+
 get '/index' do
   redirect to('/')
 end
@@ -176,6 +189,14 @@ post '/:doc/add_req' do
 end
 
 get '/:doc', :mode => :req do
+  @all_docs = DB["docs"].find({}, {:fields => ["_name", "_content"], :sort => ["date", :desc]})
+  @origin = []
+  @all_docs.each {|doc|
+    if CreolaExtractURL.new(doc["_content"]).to_a.include? params[:doc]
+      @origin << doc["_name"] unless @origin.include? doc["_name"]
+    end
+  }
+  
   ReqParser.new(@req, :context => self).to_html
 end
 
