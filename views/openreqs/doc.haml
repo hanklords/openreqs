@@ -4,10 +4,13 @@
     :css
       .req ul li p {display: inline}
   %body
-    - if @date.nil?
-      %div
-        %a(href="#{@name}/edit") Edit the document
-    - if @name != "index"
-      %div
+    %div
+      - if @name != "index"
         %a{:href => to("/index")} Return to Summary
+        |
+      - if @date.nil?
+        %a(href="#{@name}/edit") Edit the document
+        |
+      %a(href="#{@name}/history") History
+
     = @content
