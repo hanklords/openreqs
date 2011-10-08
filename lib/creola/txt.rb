@@ -2,13 +2,13 @@ require 'creola/core'
 
 class CreolaTxt < Creola
   def to_txt; render end
-    
-  private
   def root(content); content.join end
   def line_break; "\\\\" end
   def heading(level, text); "=" * level << " " << text << " " << "=" * level << "\n" end
   def paragraph(*parts); parts.join + "\n\n" end
-  def nowiki(text); "{{{\n" + text + "\n}}}\n" end
+  def nowiki(text)
+    "{{{\n" + text.sub(/\r?\n\z/, '') + "\n}}}\n"
+  end
   def nowiki_inline(text); "{{{" + text + "}}}" end
   def bold(*parts); "**" + parts.join + "**" end
   def italic(*parts); "//" + parts.join + "//" end
@@ -33,4 +33,5 @@ class CreolaTxt < Creola
     str << "}}"
   end
   def horizontal_rule; "----\n\n" end
+  def words(*words) words.join end; 
 end

@@ -3,8 +3,6 @@ require 'json'
 
 class CreolaJSON < Creola
   def to_json; render end
-    
-  private
   def root(content); content.to_json end
   def line_break; {:line_break => true} end
   def heading(level, text); { :heading => {:level => level, :text => text}} end
@@ -34,4 +32,5 @@ class CreolaJSON < Creola
       m
     }
   end
+  def words(*words) words.join end; 
 end
