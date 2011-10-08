@@ -4,6 +4,7 @@ $:.unshift lib unless $:.include?(lib)
 require 'sinatra'
 require 'haml'
 require 'creola/html'
+require 'creola/txt'
 require 'mongo'
 require 'time'
 
@@ -13,14 +14,11 @@ DB = Mongo::Connection.new.db("openreqs")
 class CreolaExtractURL < Creola
   def initialize(*args);  super; @links = [] end
   alias :to_a :render
-    
-  private
   def root(content); @links end
   def link(url, text, namespace); @links << url end
 end
 
 class DocReqParser < CreolaHTML
-  attr_reader :content
   def initialize(content, options = {})
     super
     @options[:date] ||= Time.now.utc + 1
@@ -53,6 +51,18 @@ class DocReqParser < CreolaHTML
         raise "Unrecognized local link find method : #{method}"
       end
     }
+  end
+end
+
+class DocParserTxt < CreolaTxt
+  def link(uri, text, namespace)
+    if req = DB["requirements"].find_one("_name" => uri)
+      "==== #{req["_name"]} ====\n\n" +
+      CreolaTxt.new(req["_content"]).to_txt +
+      "\n"
+    else
+      super(uri, text, namespace)
+    end
   end
 end
 
@@ -100,7 +110,7 @@ set(:mode) do |mode|
   }
 end
 
-['/:doc', '/:doc/*'].each {|path|
+['/:doc', '/:doc.*', '/:doc/*'].each {|path|
   before path do
     @doc = DB["docs"].find_one({"_name" => params[:doc]}, {:sort => ["date", :desc]})
     if @doc.nil?
@@ -127,6 +137,11 @@ get '/' do
   @name = doc["_name"]
   @content = DocReqParser.new(doc["_content"], :find_local_link => [:doc, :new_doc], :context => self).to_html
   haml :index
+end
+
+get '/:doc.txt', :mode => :doc do
+  content_type :txt
+  DocParserTxt.new(@doc["_content"]).to_txt
 end
 
 get '/:doc', :mode => :doc do
