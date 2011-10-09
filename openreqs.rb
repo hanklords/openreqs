@@ -9,7 +9,13 @@ require 'mongo'
 require 'diff/lcs'
 require 'time'
 
-DB = Mongo::Connection.new.db("openreqs")
+configure do
+  set :mongo, Mongo::Connection.new.db("openreqs")
+end
+
+helpers do
+  def mongo; settings.mongo end
+end
 
 # Creole extensions
 class CreolaExtractURL < Creola
@@ -34,7 +40,7 @@ class Doc
   def exist?; !@doc.nil? end
   def [](attr); exist? ? @doc[attr] : nil end
   def date; self["date"] end
-  def content; self["_content"] end
+  def content; self["_content"] || '' end
   
   def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
  
@@ -179,9 +185,9 @@ class DocDiff < ContentDiff
     if req_old || req_new
       case @discard_state
       when :remove
-        ReqHTML.new(req_old, :context => @options[:context]).to_html
+        ReqDiff.new(req_old, EmptyReq.new, @options).to_html
       when :add
-        ReqHTML.new(req_new, :context => @options[:context]).to_html
+        ReqDiff.new(EmptyReq.new, req_new, @options).to_html
       else
         ReqDiff.new(req_old, req_new, @options).to_html
       end
@@ -205,8 +211,8 @@ class ReqDiff
   end
   
   attr_reader :content
-  def name; @req_new.name end
-  def date; @req_new.date end
+  def name; @req_new.name || @req_old.name end
+  def date; @req_new.date || @req_old.date end
         
   def to_html
     template = File.join(@context.settings.views, TEMPLATE)
@@ -239,7 +245,7 @@ class Req
   def exist?; !@req.nil? end
   def [](attr); exist? ? @req[attr] : nil end
   def date; self["date"] end
-  def content; self["_content"] end
+  def content; self["_content"] || '' end
   def name; self["_name"] end
   def to_hash; @req end
   def to_txt
@@ -251,6 +257,10 @@ class Req
     }
     str << "\n"
   end
+end
+
+class EmptyReq < Req
+  def initialize; end
 end
 
 class ReqHTML
@@ -296,9 +306,9 @@ end
 
 ['/:doc', '/:doc.*', '/:doc/*'].each {|path|
   before path do
-    @doc = Doc.new(DB, params[:doc], :context => self)
+    @doc = Doc.new(mongo, params[:doc], :context => self)
     if !@doc.exist?
-      @req = Req.new(DB, params[:doc], :context => self)
+      @req = Req.new(mongo, params[:doc], :context => self)
     end
   end
 }
@@ -312,7 +322,7 @@ get '/index' do
 end
 
 get '/' do
-  @doc = DocIndex.new(DB)
+  @doc = DocIndex.new(mongo)
   @name = @doc.name
   haml :index
 end
@@ -333,7 +343,7 @@ end
 
 post '/:doc/add' do
   doc = {"_name" => params[:doc], "_content" => params[:content]}
-  DB["docs"].insert doc
+  mongo["docs"].insert doc
   
   redirect to('/' + params[:doc])
 end
@@ -349,15 +359,15 @@ post '/:doc/edit', :mode => :doc do
   doc_data.delete "_id"
   doc_data["date"] = Time.now.utc
   doc_data["_content"] = params[:content]
-  DB["docs"].save doc_data
+  mongo["docs"].save doc_data
 
   redirect to('/' + params[:doc])
 end
 
 get '/:doc/history', :mode => :doc do
-  @dates = DB["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
+  @dates = mongo["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
   req_names = CreolaExtractURL.new(@doc["_content"]).to_a
-  @dates.concat DB["requirements"].find({
+  @dates.concat mongo["requirements"].find({
     "_name" => {"$in" => req_names},
     "date"=> {"$gt" => @dates[0]}
    }, {:fields => "date"}).map {|req| req["date"]}
@@ -370,7 +380,7 @@ end
 get '/:doc/:date.txt', :mode => :doc do
   content_type :txt
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @doc = Doc.new(DB, params[:doc], :date => @date, :context => self)
+  @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
   
   @doc.to_txt
@@ -378,7 +388,7 @@ end
 
 get '/:doc/:date', :mode => :doc do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @doc = Doc.new(DB, params[:doc], :date => @date, :context => self)
+  @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
   
   @name = params[:doc]
@@ -387,12 +397,11 @@ end
 
 get '/:doc/:date/diff', :mode => :doc do
   @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @doc_a = Doc.new(DB, params[:doc], :date => @date_a, :context => self)
+  @doc_a = Doc.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
   
   @date_b = @date_a - 1
-  @doc_b = Doc.new(DB, params[:doc], :date => @date_b, :context => self)
-  not_found if !@doc_b.exist?
+  @doc_b = Doc.new(mongo, params[:doc], :date => @date_b, :context => self)
 
   @name = params[:doc]
   @diff = DocDiff.new(@doc_b, @doc_a, :context => self)
@@ -405,7 +414,7 @@ end
 
 post '/:doc/add_req' do
   req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
-  DB["requirements"].insert req
+  mongo["requirements"].insert req
   
   redirect to('/' + params[:doc])
 end
@@ -417,13 +426,13 @@ end
 
 get '/:doc', :mode => :req do
   latest_doc = {}
-  DB["docs"].find({}, {:fields => ["_name", "date"], :sort => ["date", :desc]}).each {|doc|
+  mongo["docs"].find({}, {:fields => ["_name", "date"], :sort => ["date", :desc]}).each {|doc|
     latest_doc[doc["_name"]] ||= doc
   }
   latest = latest_doc.map {|k,v| v["_id"]}
   
   @origin = []
-  DB["docs"].find({"_id" => {"$in" => latest}}, {:fields => ["_name", "_content"]}).each {|doc|
+  mongo["docs"].find({"_id" => {"$in" => latest}}, {:fields => ["_name", "_content"]}).each {|doc|
     if CreolaExtractURL.new(doc["_content"]).to_a.include? params[:doc]
       @origin << doc["_name"]
     end
@@ -433,12 +442,12 @@ get '/:doc', :mode => :req do
 end
 
 get '/:doc/edit', :mode => :req do
-  cache_control :no_cache  
+  cache_control :no_cache
   haml :doc_req_edit
 end
 
 get '/:doc/history', :mode => :req do
-  @dates = DB["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+  @dates = mongo["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
   @name = params[:doc]
   
   haml :req_history
@@ -447,7 +456,7 @@ end
 get '/:doc/:date.txt', :mode => :req do
   content_type :txt
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @req = Req.new(DB, params[:doc], :date => @date, :context => self)
+  @req = Req.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@req.exist?
   
   @req.to_txt
@@ -455,7 +464,7 @@ end
 
 get '/:doc/:date', :mode => :req do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @req = Req.new(DB, params[:doc], :date => @date, :context => self)
+  @req = Req.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if @req.nil?
   
   ReqHTML.new(@req, :context => self).to_html
@@ -463,12 +472,11 @@ end
 
 get '/:doc/:date/diff', :mode => :req do
   @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @doc_a = Req.new(DB, params[:doc], :date => @date_a, :context => self)
+  @doc_a = Req.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
   
   @date_b = @date_a - 1
-  @doc_b = Req.new(DB, params[:doc], :date => @date_b, :context => self)
-  not_found if !@doc_b.exist?
+  @doc_b = Req.new(mongo, params[:doc], :date => @date_b, :context => self)
 
   @name = params[:doc]
   @diff = ReqDiff.new(@doc_b, @doc_a, :context => self)
@@ -488,7 +496,7 @@ post '/:doc/edit', :mode => :req do
     end
   end
   
-  DB["requirements"].save req_data
+  mongo["requirements"].save req_data
   
   redirect to('/' + params[:doc])
 end
