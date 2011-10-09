@@ -288,7 +288,7 @@ class Creola
     
     class BlankLines < BasicState
       def token_EOL(token, text); end
-      def default_token(token, text); pop.parse(token, text) end
+      def default_token(token, text); pop.parse(:EOL, "\n").parse(token, text) end
     end
     
     # {{myimage.png|this is my image}} 
@@ -381,7 +381,12 @@ class Creola
     end
     
     class Cell < Multiline
-      def finish; !@result.empty? and @context.cell(*@result) end
+      def finish
+        if !@result.empty?
+          @header_cell ? @context.header_cell(*@result) : @context.cell(*@result)
+        end
+      end
+      
       def token_EQUAL(token, text); @header_cell = true end
       def token_PIPE(token, text); pop.parse(token, text) end
     end
