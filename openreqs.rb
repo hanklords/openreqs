@@ -196,6 +196,8 @@ class DocDiff < ContentDiff
       else
         ReqDiff.new(req_old, req_new, @options).to_html
       end
+    elsif @doc_old.docs.include?(uri) || @doc_new.docs.include?(uri)
+      super(@options[:context].to("/d/#{uri}"), text, namespace)
     else
       super(uri, text, namespace)
     end
