@@ -391,7 +391,7 @@ get '/:doc/:date/diff', :mode => :doc do
   not_found if !@doc_b.exist?
 
   @name = params[:doc]
-  @content = DocDiff.new(@doc_b, @doc_a, :context => self).to_html
+  @diff = DocDiff.new(@doc_b, @doc_a, :context => self)
   haml :doc_diff
 end
 
@@ -441,6 +441,20 @@ get '/:doc/:date', :mode => :req do
   not_found if @req.nil?
   
   ReqHTML.new(@req, :context => self).to_html
+end
+
+get '/:doc/:date/diff', :mode => :req do
+  @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
+  @doc_a = Req.new(DB, params[:doc], :date => @date_a, :context => self)
+  not_found if !@doc_a.exist?
+  
+  @date_b = @date_a - 1
+  @doc_b = Req.new(DB, params[:doc], :date => @date_b, :context => self)
+  not_found if !@doc_b.exist?
+
+  @name = params[:doc]
+  @diff = ReqDiff.new(@doc_b, @doc_a, :context => self)
+  haml :req_diff
 end
 
 post '/:doc/edit', :mode => :req do
