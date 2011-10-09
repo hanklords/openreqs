@@ -113,13 +113,7 @@ end
 class DocParserTxt < CreolaTxt
   def link(uri, text, namespace)
     if req = @options[:requirements][uri]
-      str = "==== #{req.name} ====\n\n"
-      str << req.content << "\n\n"
-      str << "* date: #{req.date}\n"
-      req.attributes.each {|k, v|
-        str << "* #{k}: #{v}\n"
-      }
-      str << "\n"
+      req.to_txt
     else
       super(uri, text, namespace)
     end
@@ -248,6 +242,15 @@ class Req
   def content; self["_content"] end
   def name; self["_name"] end
   def to_hash; @req end
+  def to_txt
+    str = "==== #{name} ====\n\n"
+    str << content << "\n\n"
+    str << "* date: #{date}\n"
+    attributes.each {|k, v|
+      str << "* #{k}: #{v}\n"
+    }
+    str << "\n"
+  end
 end
 
 class ReqHTML
@@ -407,6 +410,11 @@ post '/:doc/add_req' do
   redirect to('/' + params[:doc])
 end
 
+get '/:doc.txt', :mode => :req do
+  content_type :txt
+  @req.to_txt
+end
+
 get '/:doc', :mode => :req do
   latest_doc = {}
   DB["docs"].find({}, {:fields => ["_name", "date"], :sort => ["date", :desc]}).each {|doc|
@@ -434,6 +442,15 @@ get '/:doc/history', :mode => :req do
   @name = params[:doc]
   
   haml :req_history
+end
+
+get '/:doc/:date.txt', :mode => :req do
+  content_type :txt
+  @date = Time.xmlschema(params[:date]) + 1 rescue not_found
+  @req = Req.new(DB, params[:doc], :date => @date, :context => self)
+  not_found if !@req.exist?
+  
+  @req.to_txt
 end
 
 get '/:doc/:date', :mode => :req do
