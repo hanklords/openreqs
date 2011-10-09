@@ -329,6 +329,7 @@ get '/d/:doc' do
 end
 
 get '/d/:doc/add' do
+  @name = params[:doc]
   haml :doc_add
 end
 
@@ -336,11 +337,12 @@ post '/d/:doc/add' do
   doc = {"_name" => params[:doc], "_content" => params[:content]}
   mongo["docs"].insert doc
   
-  redirect to('/' + params[:doc])
+  redirect to('/d/' + params[:doc])
 end
 
 get '/d/:doc/edit' do
   cache_control :no_cache
+  @name = @doc.name
   @content = @doc.content
   haml :doc_edit
 end
@@ -352,7 +354,7 @@ post '/d/:doc/edit' do
   doc_data["_content"] = params[:content]
   mongo["docs"].save doc_data
 
-  redirect to('/' + params[:doc])
+  redirect to('/d/' + params[:doc])
 end
 
 get '/d/:doc/history' do
@@ -407,7 +409,7 @@ post '/r/:doc/add' do
   req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
   mongo["requirements"].insert req
   
-  redirect to('/' + params[:doc])
+  redirect to('/r/' + params[:doc])
 end
 
 get '/r/:doc.txt' do
@@ -489,5 +491,5 @@ post '/r/:doc/edit' do
   
   mongo["requirements"].save req_data
   
-  redirect to('/' + params[:doc])
+  redirect to('/r/' + params[:doc])
 end
