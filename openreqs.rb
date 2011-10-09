@@ -137,8 +137,9 @@ class CreolaList < CreolaTxt
 end
 
 class ContentDiff < CreolaHTML
-  def initialize(old_content, new_content, options = {})
-    @old_content, @new_content = old_content, new_content
+  def initialize(old_creole, new_creole, options = {})
+    @old_content = CreolaList.new(old_creole).to_a
+    @new_content = CreolaList.new(new_creole).to_a
     super(nil, options)
   end
   
@@ -180,7 +181,7 @@ end
 class DocDiff < ContentDiff
   def initialize(doc_old, doc_new, options = {})
     @doc_old, @doc_new = doc_old, doc_new
-    super(CreolaList.new(@doc_old.content).to_a, CreolaList.new(@doc_new.content).to_a, options)
+    super(@doc_old.content, @doc_new.content, options)
   end
   
   def heading(level, text); super(level + 1, text) end
@@ -210,7 +211,7 @@ class ReqDiff
   def initialize(req_old, req_new, options = {})
     @req_old, @req_new, @options = req_old, req_new, options
     @context = @options[:context]
-    @content = ContentDiff.new(CreolaList.new(req_old.content).to_a, CreolaList.new(req_new.content).to_a)
+    @content = ContentDiff.new(req_old.content, req_new.content)
   end
 
   def attributes
