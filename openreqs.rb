@@ -66,6 +66,7 @@ class Doc
       :context => @options[:context]
     ).to_html 
   end
+  def to_txt; DocParserTxt.new(content, :requirements => requirements).to_txt end
 end
       
 class DocIndex < Doc
@@ -111,10 +112,14 @@ end
 
 class DocParserTxt < CreolaTxt
   def link(uri, text, namespace)
-    if req = DB["requirements"].find_one("_name" => uri)
-      "==== #{req["_name"]} ====\n\n" +
-      CreolaTxt.new(req["_content"]).to_txt +
-      "\n"
+    if req = @options[:requirements][uri]
+      str = "==== #{req.name} ====\n\n"
+      str << req.content << "\n\n"
+      str << "* date: #{req.date}\n"
+      req.attributes.each {|k, v|
+        str << "* #{k}: #{v}\n"
+      }
+      str << "\n"
     else
       super(uri, text, namespace)
     end
@@ -310,7 +315,7 @@ end
 
 get '/:doc.txt', :mode => :doc do
   content_type :txt
-  DocParserTxt.new(@doc.content).to_txt
+  @doc.to_txt
 end
 
 get '/:doc', :mode => :doc do
@@ -356,6 +361,15 @@ get '/:doc/history', :mode => :doc do
   @name = params[:doc]
   
   haml :doc_history
+end
+
+get '/:doc/:date.txt', :mode => :doc do
+  content_type :txt
+  @date = Time.xmlschema(params[:date]) + 1 rescue not_found
+  @doc = Doc.new(DB, params[:doc], :date => @date, :context => self)
+  not_found if !@doc.exist?
+  
+  @doc.to_txt
 end
 
 get '/:doc/:date', :mode => :doc do

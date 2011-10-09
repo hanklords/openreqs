@@ -1,4 +1,5 @@
-%h2= @name
+%h2
+  %a{:href => to("/#@name")}= @name
 %ul
   - @dates.each do |date|
     %li
