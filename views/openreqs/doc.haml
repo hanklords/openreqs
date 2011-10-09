@@ -5,12 +5,12 @@
       .req ul li p {display: inline}
   %body
     %div
-      - if @name != "index"
-        %a{:href => to("/index")} Return to Summary
-        |
+      %a{:href => to("/")} Return to Summary
+      |
       - if @date.nil?
-        %a(href="#{@name}/edit") Edit the document
+        %a{:href => to("/d/#@name/edit")} Edit the document
         |
-      %a(href="#{@name}/history") History
+      %a{:href => to("/d/#@name/history")} History
 
+    %h1= @name
     = @doc.to_html

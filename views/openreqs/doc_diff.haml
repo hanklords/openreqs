@@ -6,4 +6,6 @@
       .add {background-color: #dfd;}
       .req ul li p {display: inline}
   %body
+    %h1
+      %a{:href => to("/d/#@name/history")}= @name
     = @diff.to_html

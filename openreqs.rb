@@ -72,7 +72,7 @@ class Doc
       :context => @options[:context]
     ).to_html 
   end
-  def to_txt; DocParserTxt.new(content, :requirements => requirements).to_txt end
+  def to_txt; DocParserTxt.new(content, :name => name, :requirements => requirements).to_txt end
 end
       
 class DocIndex < Doc
@@ -85,45 +85,49 @@ class DocIndex < Doc
   end
   
   def requirement_list; [] end
-  def to_html; DocIndexHTML.new(content, :docs => docs).to_html end
+  def to_html; DocIndexHTML.new(content, :docs => docs, :context => @options[:context]).to_html end
 end
 
 class DocHTML < CreolaHTML
+  def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
+    context = @options[:context]
+    
     if uri =~ %r{^(http|ftp)://}
       super(uri, text, namespace)
     elsif req = @options[:requirements][uri]
-      ReqHTML.new(req, :context => @options[:context]).to_html
+      ReqHTML.new(req, :context => context).to_html
     elsif @options[:docs].include? uri
-      super(uri, text, namespace)
+      super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      text ||= uri
-      uri = uri + "/add_req"
-      super(uri, text, namespace)
+      super(context.to(uri + "/add"), text || uri, namespace)
     end
   end
 end
 
 class DocIndexHTML < CreolaHTML
   def link(uri, text, namespace)
+    context = @options[:context]
+    
     if @options[:docs].include? uri
-      super(uri, text, namespace)
+      super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      text ||= uri
-      uri = uri + "/add"
-      super(uri, text, namespace)
+      super(context.to("/d/" + uri + "/add"), text || uri, namespace)
     end
   end
 end
 
 class DocParserTxt < CreolaTxt
+  def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
     if req = @options[:requirements][uri]
-      req.to_txt
+      req.to_txt + "\n"
     else
       super(uri, text, namespace)
     end
   end
+  
+  def to_txt; "= #{@options[:name]} =\n\n" + super end
 end
 
 class CreolaList < CreolaTxt
@@ -179,6 +183,7 @@ class DocDiff < ContentDiff
     super(CreolaList.new(@doc_old.content).to_a, CreolaList.new(@doc_new.content).to_a, options)
   end
   
+  def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
     req_old = @doc_old.requirements[uri]
     req_new = @doc_new.requirements[uri]
@@ -291,70 +296,56 @@ end
 set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
 
-set(:mode) do |mode| 
-  condition {
-    case mode
-    when :doc
-      @doc.exist?
-    when :req
-      !@req.nil?
-    else
-      false
-    end
-  }
+before '/d/:doc/?*' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
 end
 
-['/:doc', '/:doc.*', '/:doc/*'].each {|path|
-  before path do
-    @doc = Doc.new(mongo, params[:doc], :context => self)
-    if !@doc.exist?
-      @req = Req.new(mongo, params[:doc], :context => self)
-    end
-  end
-}
+before '/r/:req/?*' do
+  @req = Req.new(mongo, params[:req], :context => self)
+end
 
 get '' do
   redirect to('/')
 end
 
-get '/index' do
+get '/d/index' do
   redirect to('/')
 end
 
 get '/' do
-  @doc = DocIndex.new(mongo)
+  @doc = DocIndex.new(mongo, :context => self)
   @name = @doc.name
   haml :index
 end
 
-get '/:doc.txt', :mode => :doc do
+get '/d/:doc.txt' do
   content_type :txt
   @doc.to_txt
 end
 
-get '/:doc', :mode => :doc do
+get '/d/:doc' do
   @name = @doc.name
   haml :doc
 end
 
-get '/:doc/add' do
+get '/d/:doc/add' do
   haml :doc_add
 end
 
-post '/:doc/add' do
+post '/d/:doc/add' do
   doc = {"_name" => params[:doc], "_content" => params[:content]}
   mongo["docs"].insert doc
   
   redirect to('/' + params[:doc])
 end
 
-get '/:doc/edit', :mode => :doc do
+get '/d/:doc/edit' do
   cache_control :no_cache
   @content = @doc.content
   haml :doc_edit
 end
 
-post '/:doc/edit', :mode => :doc do
+post '/d/:doc/edit' do
   doc_data = @doc.to_hash
   doc_data.delete "_id"
   doc_data["date"] = Time.now.utc
@@ -364,7 +355,7 @@ post '/:doc/edit', :mode => :doc do
   redirect to('/' + params[:doc])
 end
 
-get '/:doc/history', :mode => :doc do
+get '/d/:doc/history' do
   @dates = mongo["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
   req_names = CreolaExtractURL.new(@doc["_content"]).to_a
   @dates.concat mongo["requirements"].find({
@@ -377,7 +368,7 @@ get '/:doc/history', :mode => :doc do
   haml :doc_history
 end
 
-get '/:doc/:date.txt', :mode => :doc do
+get '/d/:doc/:date.txt' do
   content_type :txt
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
@@ -386,7 +377,7 @@ get '/:doc/:date.txt', :mode => :doc do
   @doc.to_txt
 end
 
-get '/:doc/:date', :mode => :doc do
+get '/d/:doc/:date' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
@@ -395,7 +386,7 @@ get '/:doc/:date', :mode => :doc do
   haml :doc
 end
 
-get '/:doc/:date/diff', :mode => :doc do
+get '/d/:doc/:date/diff' do
   @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc_a = Doc.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
@@ -408,23 +399,23 @@ get '/:doc/:date/diff', :mode => :doc do
   haml :doc_diff
 end
 
-get '/:doc/add_req' do
+get '/r/:doc/add' do
   haml :doc_req_add
 end
 
-post '/:doc/add_req' do
+post '/r/:doc/add' do
   req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
   mongo["requirements"].insert req
   
   redirect to('/' + params[:doc])
 end
 
-get '/:doc.txt', :mode => :req do
+get '/r/:doc.txt' do
   content_type :txt
   @req.to_txt
 end
 
-get '/:doc', :mode => :req do
+get '/r/:doc' do
   latest_doc = {}
   mongo["docs"].find({}, {:fields => ["_name", "date"], :sort => ["date", :desc]}).each {|doc|
     latest_doc[doc["_name"]] ||= doc
@@ -441,19 +432,19 @@ get '/:doc', :mode => :req do
   ReqHTML.new(@req, :context => self).to_html
 end
 
-get '/:doc/edit', :mode => :req do
+get '/r/:doc/edit' do
   cache_control :no_cache
   haml :doc_req_edit
 end
 
-get '/:doc/history', :mode => :req do
+get '/r/:doc/history' do
   @dates = mongo["requirements"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
   @name = params[:doc]
   
   haml :req_history
 end
 
-get '/:doc/:date.txt', :mode => :req do
+get '/r/:doc/:date.txt' do
   content_type :txt
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @req = Req.new(mongo, params[:doc], :date => @date, :context => self)
@@ -462,7 +453,7 @@ get '/:doc/:date.txt', :mode => :req do
   @req.to_txt
 end
 
-get '/:doc/:date', :mode => :req do
+get '/r/:doc/:date' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @req = Req.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if @req.nil?
@@ -470,7 +461,7 @@ get '/:doc/:date', :mode => :req do
   ReqHTML.new(@req, :context => self).to_html
 end
 
-get '/:doc/:date/diff', :mode => :req do
+get '/r/:doc/:date/diff' do
   @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc_a = Req.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
@@ -483,7 +474,7 @@ get '/:doc/:date/diff', :mode => :req do
   haml :req_diff
 end
 
-post '/:doc/edit', :mode => :req do
+post '/r/:doc/edit' do
   req_data = @req.to_hash
   req_data.delete "_id"
   req_data["date"] = Time.now.utc
