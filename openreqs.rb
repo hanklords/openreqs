@@ -396,7 +396,8 @@ get '/d/:doc/:date/diff' do
   @doc_a = Doc.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
   
-  @date_b = @date_a - 1
+  @date_param = Time.xmlschema(params[:compare]) + 1 rescue nil
+  @date_b = @date_param || (@date_a - 1)
   @doc_b = Doc.new(mongo, params[:doc], :date => @date_b, :context => self)
 
   @name = params[:doc]
@@ -471,7 +472,8 @@ get '/r/:doc/:date/diff' do
   @doc_a = Req.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?
   
-  @date_b = @date_a - 1
+  @date_param = Time.xmlschema(params[:compare]) + 1 rescue nil
+  @date_b = @date_param || (@date_a - 1)
   @doc_b = Req.new(mongo, params[:doc], :date => @date_b, :context => self)
 
   @name = params[:doc]
