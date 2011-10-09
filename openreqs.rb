@@ -247,6 +247,7 @@ class Req
   def date; self["date"] end
   def content; self["_content"] end
   def name; self["_name"] end
+  def to_hash; @req end
 end
 
 class ReqHTML
@@ -458,18 +459,19 @@ get '/:doc/:date/diff', :mode => :req do
 end
 
 post '/:doc/edit', :mode => :req do
-  @req.delete "_id"
-  @req["date"] = Time.now.utc
-  @req["_content"] = params[:content]
+  req_data = @req.to_hash
+  req_data.delete "_id"
+  req_data["date"] = Time.now.utc
+  req_data["_content"] = params[:content]
   if !params[:key].empty?
     if !params[:value].empty?
-      @req[params[:key]] = params[:value]
+      req_data[params[:key]] = params[:value]
     else
-      @req.delete params[:key]
+      req_data.delete params[:key]
     end
   end
   
-  DB["requirements"].save @req
+  DB["requirements"].save req_data
   
   redirect to('/' + params[:doc])
 end
