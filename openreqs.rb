@@ -408,9 +408,8 @@ end
 
 get '/:doc', :mode => :req do
   latest_doc = {}
-  DB["docs"].find({}, {:fields => ["_name", "date"], :sort => ["_name", :asc, "date", :asc]}).each {|doc|
+  DB["docs"].find({}, {:fields => ["_name", "date"], :sort => ["date", :desc]}).each {|doc|
     latest_doc[doc["_name"]] ||= doc
-    latest_doc[doc["_name"]] = doc if doc["date"] > latest_doc[doc["_name"]]["date"]
   }
   latest = latest_doc.map {|k,v| v["_id"]}
   
@@ -438,7 +437,7 @@ end
 
 get '/:doc/:date', :mode => :req do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
-  @req = DB["requirements"].find_one({"_name" => params[:doc], "date" => {"$lte" => @date}}, {:sort => ["date", :desc]})
+  @req = Req.new(DB, params[:doc], :date => @date, :context => self)
   not_found if @req.nil?
   
   ReqHTML.new(@req, :context => self).to_html
