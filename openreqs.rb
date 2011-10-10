@@ -299,13 +299,17 @@ end
 set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
 
-before '/d/:doc/?*' do
-  @doc = Doc.new(mongo, params[:doc], :context => self)
-end
+%w(/d/:doc /d/:doc.:ext /d/:doc/*).each {|path|
+  before path do
+    @doc = Doc.new(mongo, params[:doc], :context => self)
+  end
+}
 
-before '/r/:req/?*' do
-  @req = Req.new(mongo, params[:req], :context => self)
-end
+%w(/r/:req /r/:req.:ext /r/:req/*).each {|path|
+  before path do
+    @req = Req.new(mongo, params[:req], :context => self)
+  end
+}
 
 get '' do
   redirect to('/')
