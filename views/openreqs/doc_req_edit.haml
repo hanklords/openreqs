@@ -1,16 +1,18 @@
 %html
   %body
     %form(method="post")
-      %h2 Attributes
+      %strong Attributes
       %ul
         - @attributes.each do |k,v| 
-          %li #{k}: #{v}
+          %li #{k}: 
+          %input(name=k value="#{v}")
         %li
           %input(name="key")
           \:
           %input(name="value")
-      %h2 Text
-      %textarea(name="content" cols=80 rows=40)= @content
+      %strong Text
+      %br
+      %textarea(name="content" cols=80 rows=20)= @content
       %p
       %input(type="submit" value="Sauver")
 

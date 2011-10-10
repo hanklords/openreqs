@@ -251,3 +251,7 @@ post '/:doc/edit', :mode => :req do
   
   redirect to('/' + params[:doc])
 end
+
+get '/:doc/add' do
+  haml :doc_add
+end
