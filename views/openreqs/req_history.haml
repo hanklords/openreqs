@@ -1,7 +1,11 @@
-%h2
-  %a{:href => to("/r/#@name")}= @name
-%ul
-  - @dates.each do |date|
-    %li
-      %a{:href => to("/r/#@name/#{date.iso8601}")}= date.strftime("%F %T")
-      %a{:href => to("/r/#@name/#{date.iso8601}/diff")} (diff)
+%html
+  %head
+    %title #{@name} - History
+  %body
+    %h2
+      %a{:href => to("/r/#@name")}= @name
+    %ul
+      - @dates.each do |date|
+        %li
+          %a{:href => to("/r/#@name/#{date.iso8601}")}= date.strftime("%F %T")
+          %a{:href => to("/r/#@name/#{date.iso8601}/diff")} (diff)
