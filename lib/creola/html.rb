@@ -2,11 +2,9 @@ require 'creola/core'
 
 class CreolaHTML < Creola
   def to_html; render end
-    
-  private
   def root(content); content.join end
   def line_break; "<br />" end
-  def heading(level, text); "<h#{level}>" + text + "</h#{level}>\n" end
+  def heading(level, text); "<h#{level}>" + words(text) + "</h#{level}>\n" end
   def paragraph(*parts); "<p>" + parts.join + "</p>\n" end
   def nowiki(text); "<pre>" + text + "</pre>\n" end
   def nowiki_inline(text); text end
@@ -38,11 +36,12 @@ class CreolaHTML < Creola
   def unnumbered_item(level, *parts); [level, parts.join] end
   def numbered_item(level, *parts); [level, parts.join] end
   
-  def link(url, text, namespace); %{<a href="#{url}">#{text || url}</a>} end
+  def link(url, text, namespace); %{<a href="#{url}">#{words(text || url)}</a>} end
   def table(*rows); "<table>\n" + rows.join + "</table>\n" end
   def row(*cells); "<tr>" + cells.join + "</tr>\n" end
   def cell(*parts); "<td>" + parts.join + "</td>" end
   def header_cell(*parts); "<th>" + parts.join + "</th>" end
   def image(url, text); %{<img src="#{url}" alt="#{text || url}" />} end
   def horizontal_rule; "<hr />\n" end
+  def words(*words) words.join end; 
 end

@@ -1,1 +1,13 @@
-doc.haml
+%html
+  %head
+    %title= @name
+    :css
+      .req ul li p {display: inline}
+  %body
+    %div
+      - if @date.nil?
+        %a{:href => to("/d/#@name/edit")} Edit the document
+        |
+      %a{:href => to("/d/#@name/history")} History
+
+    = @doc.to_html

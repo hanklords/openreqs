@@ -5,7 +5,7 @@
       - if @req
         (on #{@date.strftime('%F %T')})
     - else
-      %a(href="#{@reqp.name}/edit")= @reqp.name
+      %a{:href => to("/r/#{@reqp.name}/edit")}= @reqp.name
   = @reqp.content.to_html
   %ul
     %li date: #{@reqp.date.strftime('%Y-%m-%d')}
@@ -19,4 +19,4 @@
       %li
         origin:
         - @origin.each do |doc|
-          %a(href=doc)= doc
+          %a{:href => to("/d/#{doc}")}= doc
