@@ -8,6 +8,7 @@ require 'creola/txt'
 require 'mongo'
 require 'diff/lcs'
 require 'time'
+require 'json'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
@@ -63,7 +64,9 @@ class Doc
       m
     }
   end
-      
+  
+  def to_json; @doc.to_json end
+  
   def to_hash; @doc end
   def to_html
     DocHTML.new(content,
@@ -328,6 +331,11 @@ end
 get '/d/:doc.txt' do
   content_type :txt
   @doc.to_txt
+end
+
+get '/d/:doc.json' do
+  content_type :json
+  @doc.to_json
 end
 
 get '/d/:doc' do
