@@ -274,6 +274,12 @@ class Req
     }
     str << "\n"
   end
+  
+  def to_json(with_history = false)
+    req = @req.clone
+    req.delete("_id")
+    req.to_json
+  end
 end
 
 class EmptyReq < Req
@@ -449,6 +455,14 @@ post '/r/:req/add' do
   redirect to('/r/' + params[:doc])
 end
 
+get '/r/:req.json' do
+  @req = Req.new(mongo, params[:req], :context => self)
+  not_found if !@req.exist?
+
+  content_type :json
+  @req.to_json
+end
+
 get '/r/:req.txt' do
   @req = Req.new(mongo, params[:req], :context => self)
   not_found if !@req.exist?
@@ -490,6 +504,15 @@ get '/r/:req/history' do
   @name = params[:req]
   
   haml :req_history
+end
+
+get '/r/:req/:date.json' do
+  @date = Time.xmlschema(params[:date]) + 1 rescue not_found
+  @req = Req.new(mongo, params[:req], :date => @date, :context => self)
+  not_found if !@req.exist?
+
+  content_type :json
+  @req.to_json
 end
 
 get '/r/:req/:date.txt' do
