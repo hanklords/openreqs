@@ -109,7 +109,7 @@ class DocHTML < CreolaHTML
     elsif @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to(uri + "/add"), text || uri, namespace)
+      super(context.to("/r/" + uri + "/add"), text || uri, namespace)
     end
   end
 end
