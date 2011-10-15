@@ -88,7 +88,7 @@ class DocIndex < Doc
   def initialize(db, options = {})
     super(db, 'index', options)
     if !exist?
-      @doc = {"_name" => 'index', "_content" => ''}
+      @doc = {"_name" => 'index', "_content" => '', "date" => Time.now.utc}
       @db["docs"].insert @doc
     end
   end
