@@ -564,7 +564,3 @@ post '/r/:req/edit' do
   
   redirect to('/r/' + params[:req])
 end
-
-get '/:doc/add' do
-  haml :doc_add
-end
