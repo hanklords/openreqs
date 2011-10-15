@@ -1,1 +1,11 @@
-doc_diff.haml
+%html
+  %head
+    %title= @name
+    :css
+      .remove {background-color: #fdd; text-decoration: line-through;}
+      .add {background-color: #dfd;}
+      .req ul li p {display: inline}
+  %body
+    %h1
+      %a{:href => to("/r/#@name/history")}= @name
+    = @diff.to_html
