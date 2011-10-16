@@ -7,5 +7,5 @@
     %ul
       - @dates.each do |date|
         %li
-          %a{:href => to("/d/#@name/#{date.iso8601}")}= date.strftime("%F %T")
-          %a{:href => to("/d/#@name/#{date.iso8601}/diff")} (diff)
+          %a.version{:href => to("/d/#@name/#{date.iso8601}")}= date.strftime("%F %T")
+          %a.diff{:href => to("/d/#@name/#{date.iso8601}/diff")} (diff)
