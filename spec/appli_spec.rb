@@ -49,7 +49,6 @@ end
 describe "The index document", :type => :request do
   before(:all) do
     @doc_content = "This is the index content"
-    @doc_new_content = "This is the index new content"
     @date =  Time.now.utc - 60
     doc = {"_name" => "index", "_content" => @doc_content, "date" => @date}
     @docs.save doc
@@ -59,84 +58,108 @@ describe "The index document", :type => :request do
     visit "/d/index"
     current_path.should == "/"
   end
+  
+  it "has a link to edit it" do
+    visit "/"
+    click_on "edit"
+    current_path.should == "/d/index/edit"
+  end
+  
+  it "has a link to see its history" do
+    visit "/"
+    click_on "history"
+    current_path.should == "/d/index/history"
+  end
+  
+  it "displays the document content" do
+    visit "/"
+    find("p").text.strip.should == @doc_content
+  end
+end
 
-  it "has a text view" do
-    visit "/d/index.txt"
+describe "A document", :type => :request do
+  before(:all) do
+    @doc_content = "This is the index content"
+    @doc_new_content = "This is the index new content"
+    @date =  Time.now.utc - 60
+    @doc_name = "doc_name"
+    doc = {"_name" => @doc_name, "_content" => @doc_content, "date" => @date}
+    @docs.save doc
+  end
+  
+  it "has a text view (.txt)" do
+    visit "/d/#@doc_name.txt"
     page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
     body.should include(@doc_content)
   end
   
-  it "has a json view"
+  it "has a json view (.json)"
   
   context "in the main view" do
+    it "has a link to return to the summary"
+    
     it "has a link to edit it" do
-      visit "/"
+      visit "/d/#@doc_name"
       click_on "edit"
-      current_path.should == "/d/index/edit"
+      current_path.should == "/d/#@doc_name/edit"
     end
     
     it "has a link to see its history" do
-      visit "/"
+      visit "/d/#@doc_name"
       click_on "history"
-      current_path.should == "/d/index/history"
+      current_path.should == "/d/#@doc_name/history"
     end
     
     it "displays the document content" do
-      visit "/"
+      visit "/d/#@doc_name"
       find("p").text.strip.should == @doc_content
     end
   end
 
   context "in the edit view" do
     it "displays the content in a form" do
-      visit "/d/index/edit"
+      visit "/d/#@doc_name/edit"
       find("form").text.strip.should == @doc_content
     end
     
     it "can save the document with the given content" do
-      visit "/d/index/edit"
+      visit "/d/#@doc_name/edit"
       fill_in "content", :with => @doc_new_content
       click_on "save"
-      current_path.should == "/"
+      current_path.should == "/d/#@doc_name"
       find("p").text.strip.should == @doc_new_content
     end
   end
 
   context "in the history view" do
     it "has a link to go back to the document" do
-      visit "/d/index/history"
+      visit "/d/#@doc_name/history"
       click_on "main_link"
-      current_path.should == "/"
+      current_path.should == "/d/#@doc_name"
     end
     
     it "displays a list of revisions" do
-      visit "/d/index/history"
+      visit "/d/#@doc_name/history"
       all("li").should have(2).items
     end
     
     it "has a link to the revisions" do
-      visit "/d/index/history"
+      visit "/d/#@doc_name/history"
       find("li a.version").click
-      current_path.should match(%r{^/d/index/.+})
+      current_path.should match(%r{^/d/#@doc_name/.+})
     end
     
     it "has a link to the diff" do
-      visit "/d/index/history"
+      visit "/d/#@doc_name/history"
       find("li a.diff").click
-      current_path.should match(%r{^/d/index/.+/diff$})
+      current_path.should match(%r{^/d/#@doc_name/.+/diff$})
     end
   end
   
   context "in the version view" do
-    it "displays the document content of the first version" do
-      visit "/d/index/#{@date.xmlschema}"
-      find("p").text.strip.should == @doc_content
-    end
-    
-    it "displays the document content of the second version" do
-      visit "/d/index/#{(Time.now.utc + 60).xmlschema}"
+    it "displays the document content of the requested version" do
+      visit "/d/#@doc_name/#{(Time.now.utc + 60).xmlschema}"
       find("p").text.strip.should == @doc_new_content
     end
   end
-  
 end
