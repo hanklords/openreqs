@@ -3,7 +3,7 @@
     %title #{@name} - History
   %body
     %h2
-      %a{:href => to("/d/#@name")}= @name
+      %a#main_link{:href => to("/d/#@name")}= @name
     %ul
       - @dates.each do |date|
         %li
