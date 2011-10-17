@@ -48,10 +48,10 @@ end
 
 describe "The index document", :type => :request do
   before(:all) do
-    @doc_content = "This is the index content"
+    @index_content = "This is the index content"
     @date =  Time.now.utc - 60
-    doc = {"_name" => "index", "_content" => @doc_content, "date" => @date}
-    @docs.save doc
+    index = {"_name" => "index", "_content" => @index_content, "date" => @date}
+    @docs.save index
   end
   
   it "redirects '/d/index' to '/'" do
@@ -73,18 +73,32 @@ describe "The index document", :type => :request do
   
   it "displays the document content" do
     visit "/"
-    find("p").text.strip.should == @doc_content
+    find("p").text.strip.should == @index_content
+  end
+  
+  it "links to the creation form for inexistant documents" do
+    @unknown_doc = "unknown"
+    index = @docs.find_one
+    index["_content"] << "\n[[#@unknown_doc]]"
+    @docs.save index
+    
+    visit "/"
+    find("p a").click
+    current_path.should == "/d/#@unknown_doc/add"
   end
 end
 
 describe "A document", :type => :request do
   before(:all) do
-    @doc_content = "This is the index content"
-    @doc_new_content = "This is the index new content"
+    @req_name, @unknown_req_name = "req_name", "unknown_req_name"
+    @doc_name, @other_doc_name = "doc_name", "other_doc_name"
+    @doc_content = "This is the doc content"
+    @doc_new_content = "This is the doc new content"
+    @other_doc_content = @doc_content + "\n[[#@doc_name]]" + "\n[[#@unknown_req_name]]"
     @date =  Time.now.utc - 60
-    @doc_name = "doc_name"
-    doc = {"_name" => @doc_name, "_content" => @doc_content, "date" => @date}
-    @docs.save doc
+    
+    @docs.save("_name" => @doc_name, "_content" => @doc_content, "date" => @date)
+    @docs.save("_name" => @other_doc_name, "_content" => @other_doc_content, "date" => @date)
   end
   
   it "has a text view (.txt)" do
@@ -96,7 +110,11 @@ describe "A document", :type => :request do
   it "has a json view (.json)"
   
   context "in the main view" do
-    it "has a link to return to the summary"
+    it "has a link to return to the summary" do
+      visit "/d/#@doc_name"
+      click_on "summary"
+      current_path.should == "/"
+    end
     
     it "has a link to edit it" do
       visit "/d/#@doc_name"
@@ -114,6 +132,15 @@ describe "A document", :type => :request do
       visit "/d/#@doc_name"
       find("p").text.strip.should == @doc_content
     end
+    
+    it "links to the referenced documents" do
+      visit "/d/#@other_doc_name"
+      find_link(@doc_name).click
+      current_path.should == "/d/#@doc_name"
+    end
+    
+    it "links to the creation form for inexistant requirements"
+    it "displays the referenced requirements"
   end
 
   context "in the edit view" do
