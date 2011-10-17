@@ -424,7 +424,7 @@ get '/d/:doc/:date' do
   not_found if !@doc.exist?
   
   @name = params[:doc]
-  haml :doc
+  haml :doc_version
 end
 
 get '/d/:doc/:date/diff' do
