@@ -7,5 +7,5 @@
       .req ul li p {display: inline}
   %body
     %h1
-      %a{:href => to("/r/#@name/history")}= @name
+      %a#history{:href => to("/r/#@name/history")}= @name
     = @diff.to_html
