@@ -48,10 +48,11 @@ end
 
 describe "The index document", :type => :request do
   before(:all) do
-    @index_content = "This is the index content"
+    @doc_name, @unknown_doc = "doc_name", "unknown_doc"
+    @index_content, @doc_content = "This is the index content\n\n[[#@unknown_doc]]\n\n[[#@doc_name]]", "This is the doc content"
     @date =  Time.now.utc - 60
-    index = {"_name" => "index", "_content" => @index_content, "date" => @date}
-    @docs.save index
+    @docs.save("_name" => "index", "_content" => @index_content, "date" => @date)
+    @docs.save("_name" => @doc_name, "_content" => @doc_content, "date" => @date)
   end
   
   it "redirects '/d/index' to '/'" do
@@ -73,32 +74,37 @@ describe "The index document", :type => :request do
   
   it "displays the document content" do
     visit "/"
-    find("p").text.strip.should == @index_content
+    find("p").text.strip.should == @index_content.lines.first.strip
   end
-  
-  it "links to the creation form for inexistant documents" do
-    @unknown_doc = "unknown"
-    index = @docs.find_one
-    index["_content"] << "\n[[#@unknown_doc]]"
-    @docs.save index
-    
+
+  it "links to the referenced documents" do
     visit "/"
-    find("p a").click
+    find_link(@doc_name).click
+    current_path.should == "/d/#@doc_name"
+  end
+      
+  it "links to the creation form for inexistant documents" do
+    visit "/"
+    find_link(@unknown_doc).click
     current_path.should == "/d/#@unknown_doc/add"
   end
 end
 
 describe "A document", :type => :request do
   before(:all) do
+    @date =  Time.now.utc - 60
+    
     @req_name, @unknown_req_name = "req_name", "unknown_req_name"
+    @req_content = "This the req content"
+    
     @doc_name, @other_doc_name = "doc_name", "other_doc_name"
     @doc_content = "This is the doc content"
     @doc_new_content = "This is the doc new content"
-    @other_doc_content = @doc_content + "\n[[#@doc_name]]" + "\n[[#@unknown_req_name]]"
-    @date =  Time.now.utc - 60
+    @other_doc_content = @doc_content + "\n[[#@doc_name]]" + "\n[[#@unknown_req_name]] + \n[[#@req_name]]"
     
     @docs.save("_name" => @doc_name, "_content" => @doc_content, "date" => @date)
     @docs.save("_name" => @other_doc_name, "_content" => @other_doc_content, "date" => @date)
+    @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date)
   end
   
   it "has a text view (.txt)" do
@@ -139,8 +145,16 @@ describe "A document", :type => :request do
       current_path.should == "/d/#@doc_name"
     end
     
-    it "links to the creation form for inexistant requirements"
-    it "displays the referenced requirements"
+    it "links to the creation form for inexistant requirements" do
+      visit "/d/#@other_doc_name"
+      find_link(@unknown_req_name).click
+      current_path.should == "/r/#@unknown_req_name/add"
+    end
+    
+    it "displays the referenced requirements" do
+      visit "/d/#@other_doc_name"
+      page.should have_css(".req")
+    end
   end
 
   context "in the edit view" do
