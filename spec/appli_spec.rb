@@ -38,10 +38,64 @@ describe "An Openreqs application", :type => :request do
   it "returns 'page not found' for unknown documents" do
     visit "/d/unknown"
     page.status_code.should == 404
+    
+    visit "/d/unknown.txt"
+    page.status_code.should == 404
+    
+    visit "/d/unknown.json"
+    page.status_code.should == 404
+  end
+  
+  it "returns 'page not found' for unknown documents history" do
+    visit "/d/unknown/history"
+    page.status_code.should == 404
+  end
+    
+  it "returns 'page not found' for unknown documents version" do
+    visit "/d/unknown/#{Time.now.utc.xmlschema}"
+    page.status_code.should == 404
+    
+    visit "/d/unknown/#{Time.now.utc.xmlschema}.txt"
+    page.status_code.should == 404
+    
+    visit "/d/unknown/#{Time.now.utc.xmlschema}.json"
+    page.status_code.should == 404
+  end
+      
+  it "returns 'page not found' for unknown documents diff" do
+    visit "/d/unknown/#{Time.now.utc.xmlschema}/diff"
+    page.status_code.should == 404
   end
   
   it "returns 'page not found' for unknown requirements" do
     visit "/r/unknown"
+    page.status_code.should == 404
+    
+    visit "/r/unknown.txt"
+    page.status_code.should == 404
+    
+    visit "/r/unknown.json"
+    page.status_code.should == 404
+  end
+  
+  it "returns 'page not found' for unknown requirements history" do
+    visit "/r/unknown/history"
+    page.status_code.should == 404
+  end
+  
+  it "returns 'page not found' for unknown requirements version" do
+    visit "/r/unknown/#{Time.now.utc.xmlschema}"
+    page.status_code.should == 404
+    
+    visit "/r/unknown/#{Time.now.utc.xmlschema}.txt"
+    page.status_code.should == 404
+    
+    visit "/r/unknown/#{Time.now.utc.xmlschema}.json"
+    page.status_code.should == 404
+  end
+  
+  it "returns 'page not found' for unknown requirements diff" do
+    visit "/r/unknown/#{Time.now.utc.xmlschema}/diff"
     page.status_code.should == 404
   end
 end
@@ -96,25 +150,35 @@ describe "A document", :type => :request do
     
     @req_name, @unknown_req_name = "req_name", "unknown_req_name"
     @req_content = "This the req content"
-    
+    @req_new_content = "This the req new content"
+
     @doc_name, @other_doc_name = "doc_name", "other_doc_name"
-    @doc_content = "This is the doc content"
-    @doc_new_content = "This is the doc new content"
-    @other_doc_content = @doc_content + "\n[[#@doc_name]]" + "\n[[#@unknown_req_name]] + \n[[#@req_name]]"
+    @doc_text, @doc_new_text = "This is the doc content", "This is the doc new content"
+    @doc_content = "#@doc_text\n\n[[#@other_doc_name]]\n[[#@unknown_req_name]]\n[[#@req_name]]"
+    @doc_new_content = @doc_content.sub(@doc_text, @doc_new_text)
+    @other_doc_content = "This the content of the other doc"
     
     @docs.save("_name" => @doc_name, "_content" => @doc_content, "date" => @date)
     @docs.save("_name" => @other_doc_name, "_content" => @other_doc_content, "date" => @date)
-    @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date)
-  end
+    @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date - 10)
+    @requirements.save("_name" => @req_name, "_content" => @req_new_content, "date" => @date + 30)
+ end
   
   it "has a text view (.txt)" do
     visit "/d/#@doc_name.txt"
     page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
-    body.should include(@doc_content)
+    body.should include(@doc_text)
+  end
+  
+  it "has a versioned text view (.txt)" do
+    visit "/d/#@doc_name/#{(@date + 1).xmlschema}.txt"
+    page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
+    body.should include(@doc_text)
   end
   
   it "has a json view (.json)"
-  
+  it "has a versioned json view (.json)"
+
   context "in the main view" do
     it "links back to the summary" do
       visit "/d/#@doc_name"
@@ -136,28 +200,28 @@ describe "A document", :type => :request do
     
     it "displays the document content" do
       visit "/d/#@doc_name"
-      find("p").text.strip.should == @doc_content
+      find("p").text.strip.should == @doc_text
     end
     
     it "links to the referenced documents" do
-      visit "/d/#@other_doc_name"
-      find_link(@doc_name).click
-      current_path.should == "/d/#@doc_name"
+      visit "/d/#@doc_name"
+      find_link(@other_doc_name).click
+      current_path.should == "/d/#@other_doc_name"
     end
     
     it "links to the creation form for inexistant requirements" do
-      visit "/d/#@other_doc_name"
+      visit "/d/#@doc_name"
       find_link(@unknown_req_name).click
       current_path.should == "/r/#@unknown_req_name/add"
     end
     
     it "displays the referenced requirements" do
-      visit "/d/#@other_doc_name"
-      page.should have_css(".req")
+      visit "/d/#@doc_name"
+      find(".req p").text.strip.should == @req_new_content
     end
         
     it "links to the edit view for existing requirements" do
-      visit "/d/#@other_doc_name"
+      visit "/d/#@doc_name"
       find_link(@req_name).click
       current_path.should == "/r/#@req_name/edit"
     end
@@ -174,7 +238,7 @@ describe "A document", :type => :request do
       fill_in "content", :with => @doc_new_content
       click_on "save"
       current_path.should == "/d/#@doc_name"
-      find("p").text.strip.should == @doc_new_content
+      find("p").text.strip.should == @doc_new_text
     end
   end
 
@@ -187,7 +251,8 @@ describe "A document", :type => :request do
     
     it "displays a list of revisions" do
       visit "/d/#@doc_name/history"
-      all("li").should have(2).items
+      # 2 versions of the document + 1 version of the requirement
+      all("li").should have(3).items
     end
     
     it "links to the revisions" do
@@ -205,9 +270,17 @@ describe "A document", :type => :request do
   
   context "in the version view" do
     it "displays the document content of the requested version" do
+      # last version
       visit "/d/#@doc_name/history"
-      find("li a.version").click
-      find("p").text.strip.should == @doc_new_content
+      find("li:first a.version").click
+      find("p").text.strip.should == @doc_new_text
+      find(".req p").text.strip.should == @req_new_content
+      
+      # first version
+      visit "/d/#@doc_name/history"
+      find("li:last a.version").click
+      find("p").text.strip.should == @doc_text
+      find(".req p").text.strip.should == @req_content
     end
     
     it "links back to the history view" do
@@ -221,14 +294,26 @@ describe "A document", :type => :request do
   context "in the diff view" do
     it "displays the text differencies with previous version" do
       visit "/d/#@doc_name/history"
-      find("li a.diff").click
-      find(".remove").text.should == @doc_content
-      find(".add").text.should == @doc_new_content
+      find("li:first a.diff").click
+      find(".remove").text.should == @doc_text
+      find(".add").text.should == @doc_new_text
     end
     
-    it "displays the requirements text differencies with previous version"
+    it "displays the requirements text differencies with previous version" do
+      visit "/d/#@doc_name/history"
+      find("li:nth-child(2) a.diff").click
+      find(".remove").text.should == @req_content
+      find(".add").text.should == @req_new_content
+    end
+    
     it "displays the requirements attributes differencies with previous version"
-    it "displays the added requirements from previous version"
+    
+    it "displays the added requirements from previous version" do
+      visit "/d/#@doc_name/history"
+      find("li:last a.diff").click
+      find(".req .add").text.should == @req_content
+    end
+    
     it "displays the removed requirements from previous version"
 
     it "links back to the history view" do
@@ -261,9 +346,16 @@ describe "A requirement", :type => :request do
     page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
     body.should include(@req_content)
   end
+   
+  it "has a versioned text view (.txt)" do
+    visit "/r/#@req_name/#{(@date + 1).xmlschema}.txt"
+    page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
+    body.should include(@req_content)
+  end
   
   it "has a json view (.json)"
-  
+  it "has a versioned json view (.json)"
+
   context "in the main view" do
     it "links to the edit view" do
       visit "/r/#@req_name"
