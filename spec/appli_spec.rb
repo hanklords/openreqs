@@ -116,19 +116,19 @@ describe "A document", :type => :request do
   it "has a json view (.json)"
   
   context "in the main view" do
-    it "has a link to return to the summary" do
+    it "links back to the summary" do
       visit "/d/#@doc_name"
       click_on "summary"
       current_path.should == "/"
     end
     
-    it "has a link to edit it" do
+    it "links to the edit view" do
       visit "/d/#@doc_name"
       click_on "edit"
       current_path.should == "/d/#@doc_name/edit"
     end
     
-    it "has a link to see its history" do
+    it "links to the history view" do
       visit "/d/#@doc_name"
       click_on "history"
       current_path.should == "/d/#@doc_name/history"
@@ -155,12 +155,18 @@ describe "A document", :type => :request do
       visit "/d/#@other_doc_name"
       page.should have_css(".req")
     end
+        
+    it "links to the edit view for existing requirements" do
+      visit "/d/#@other_doc_name"
+      find_link(@req_name).click
+      current_path.should == "/r/#@req_name/edit"
+    end
   end
 
   context "in the edit view" do
     it "displays the content in a form" do
       visit "/d/#@doc_name/edit"
-      find("form").text.strip.should == @doc_content
+      find("form textarea").text.strip.should == @doc_content
     end
     
     it "can save the document with the given content" do
@@ -232,4 +238,120 @@ describe "A document", :type => :request do
       current_path.should == "/d/#@doc_name/history"
     end
   end
+  
+end
+
+describe "A requirement", :type => :request do
+  before(:all) do
+    @date =  Time.now.utc - 60
+    
+    @req_name = "req_name"
+    @req_content = "This the req content"
+    @req_new_content = "This the req new content"
+
+    @doc_name = "doc_name"
+    @doc_content = "This is the doc content\n\n[[#@req_name]]"
+    
+    @docs.save("_name" => @doc_name, "_content" => @doc_content, "date" => @date)
+    @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date)
+  end
+ 
+  it "has a text view (.txt)" do
+    visit "/r/#@req_name.txt"
+    page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
+    body.should include(@req_content)
+  end
+  
+  it "has a json view (.json)"
+  
+  context "in the main view" do
+    it "links to the edit view" do
+      visit "/r/#@req_name"
+      click_on @req_name
+      current_path.should == "/r/#@req_name/edit"
+    end
+    
+    it "links to the history view"
+    
+    it "displays the document content" do
+      visit "/r/#@req_name"
+      find("p").text.strip.should == @req_content
+    end
+    
+    it "links to the documents which reference it" do
+      visit "/r/#@req_name"
+      find("li", :text => /^ *origin/).find("a").text.should == @doc_name
+    end
+  end
+    
+  context "in the edit view" do
+    it "displays the content in a form" do
+      visit "/r/#@req_name/edit"
+      find("form textarea").text.strip.should == @req_content
+    end
+    
+    it "displays the attributes"
+    
+    it "can save the document with the given content" do
+      visit "/r/#@req_name/edit"
+      fill_in "content", :with => @req_new_content
+      click_on "save"
+      current_path.should == "/r/#@req_name"
+      find("p").text.strip.should == @req_new_content
+    end
+  end
+  
+  context "in the history view" do
+    it "has a link to go back to the requirement" do
+      visit "/r/#@req_name/history"
+      click_on "main_link"
+      current_path.should == "/r/#@req_name"
+    end
+    
+    it "displays a list of revisions" do
+      visit "/r/#@req_name/history"
+      all("li").should have(2).items
+    end
+    
+    it "links to the revisions" do
+      visit "/r/#@req_name/history"
+      find("li a.version").click
+      current_path.should match(%r{^/r/#@req_name/.+})
+    end
+    
+    it "links to the diff" do
+      visit "/r/#@req_name/history"
+      find("li a.diff").click
+      current_path.should match(%r{^/r/#@req_name/.+/diff$})
+    end
+  end
+    
+  context "in the version view" do
+    it "displays the requirement content of the requested version" do
+      visit "/r/#@req_name/history"
+      find("li a.version").click
+      find("p").text.strip.should == @req_new_content
+    end
+    
+    it "links back to the history view"
+  end
+  
+  context "in the diff view" do
+    it "displays the text differencies with previous version" do
+      visit "/r/#@req_name/history"
+      find("li a.diff").click
+      find(".remove").text.should == @req_content
+      find(".add").text.should == @req_new_content
+    end
+    
+    it "displays the requirements attributes differencies with previous version"
+
+    it "links back to the history view" do
+      visit "/r/#@req_name/history"
+      find("li a.diff").click
+      find_link("history").click
+      current_path.should == "/r/#@req_name/history"
+    end
+  end
+  
 end
