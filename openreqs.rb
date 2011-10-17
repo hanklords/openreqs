@@ -106,7 +106,7 @@ class DocHTML < CreolaHTML
     elsif @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/r/" + uri + "/add"), text || uri, namespace)
+      super(context.to("/r/#{uri}/add"), text || uri, namespace)
     end
   end
 end
@@ -118,7 +118,7 @@ class DocIndexHTML < CreolaHTML
     if @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/d/" + uri + "/add"), text || uri, namespace)
+      super(context.to("/d/#{uri}/add"), text || uri, namespace)
     end
   end
 end
@@ -204,7 +204,7 @@ class DocDiff < ContentDiff
         ReqDiff.new(req_old, req_new, @options).to_html
       end
     elsif @doc_old.docs.include?(uri) || @doc_new.docs.include?(uri)
-      super(@options[:context].to("/d/#{uri}"), text, namespace)
+      super(@options[:context].to("/d/#{uri}"), text || uri, namespace)
     else
       super(uri, text, namespace)
     end
