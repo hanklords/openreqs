@@ -184,13 +184,13 @@ describe "A document", :type => :request do
       all("li").should have(2).items
     end
     
-    it "has a link to the revisions" do
+    it "links to the revisions" do
       visit "/d/#@doc_name/history"
       find("li a.version").click
       current_path.should match(%r{^/d/#@doc_name/.+})
     end
     
-    it "has a link to the diff" do
+    it "links to the diff" do
       visit "/d/#@doc_name/history"
       find("li a.diff").click
       current_path.should match(%r{^/d/#@doc_name/.+/diff$})
@@ -199,8 +199,37 @@ describe "A document", :type => :request do
   
   context "in the version view" do
     it "displays the document content of the requested version" do
-      visit "/d/#@doc_name/#{(Time.now.utc + 60).xmlschema}"
+      visit "/d/#@doc_name/history"
+      find("li a.version").click
       find("p").text.strip.should == @doc_new_content
+    end
+    
+    it "links back to the history view" do
+      visit "/d/#@doc_name/history"
+      find("li a.version").click
+      find_link("history").click
+      current_path.should == "/d/#@doc_name/history"
+    end
+  end
+  
+  context "in the diff view" do
+    it "displays the text differencies with previous version" do
+      visit "/d/#@doc_name/history"
+      find("li a.diff").click
+      find(".remove").text.should == @doc_content
+      find(".add").text.should == @doc_new_content
+    end
+    
+    it "displays the requirements text differencies with previous version"
+    it "displays the requirements attributes differencies with previous version"
+    it "displays the added requirements from previous version"
+    it "displays the removed requirements from previous version"
+
+    it "links back to the history view" do
+      visit "/d/#@doc_name/history"
+      find("li a.diff").click
+      find_link("history").click
+      current_path.should == "/d/#@doc_name/history"
     end
   end
 end
