@@ -546,6 +546,7 @@ get '/r/:req/:date/diff' do
 end
 
 post '/r/:req/edit' do
+  @req = Req.new(mongo, params[:req], :context => self)
   req_data = @req.to_hash
   req_data.delete "_id"
   req_data["date"] = Time.now.utc
