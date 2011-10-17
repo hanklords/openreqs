@@ -498,6 +498,9 @@ get '/r/:req/edit' do
 end
 
 get '/r/:req/history' do
+  @req = Req.new(mongo, params[:req], :context => self)
+  not_found if !@req.exist?
+  
   @dates = mongo["requirements"].find({"_name" => params[:req]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
   @name = params[:req]
   
@@ -525,7 +528,7 @@ end
 get '/r/:req/:date' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @req = Req.new(mongo, params[:req], :date => @date, :context => self)
-  not_found if @req.nil?
+  not_found if !@req.exist?
   
   ReqHTML.new(@req, :context => self).to_html
 end
