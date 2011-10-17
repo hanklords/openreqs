@@ -7,6 +7,8 @@ require 'openreqs'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs-test")
+  enable :raise_errors
+  disable :show_exceptions
 end
 
 
