@@ -6,9 +6,11 @@ require 'mongo'
 require 'diff/lcs'
 require 'time'
 require 'json'
+require 'openssl'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
+   mime_type :pem, "application/x-pem-file"
 end
 
 helpers do
@@ -326,6 +328,35 @@ end
 # web application
 set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
+
+get '/a/key.pem' do
+  content_type :pem
+  self_peer = mongo["peers"].find_one("_name" => "self")
+  if self_peer.nil?
+    gen_key = OpenSSL::PKey::RSA.new(2048)
+    self_peer = {"_name" => "self", "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem}
+    mongo["peers"].save self_peer
+  end
+
+  key = OpenSSL::PKey::RSA.new(self_peer["key"])
+  key.to_pem
+end
+
+post '/a/peers/register' do
+  user, host, key = params[:user], params[:host], params[:key]
+  error 400, "user not provided in register request" if user.nil?
+  error 400, "host not provided in register request" if host.nil?
+  if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
+    error 400, "key not provided in register request"
+  end
+
+  peer_request = {"date" => Time.now.utc,
+    "ip" => request.ip, "user_agent" => request.user_agent,
+    "user" => user, "host" => host,
+    "key" => key[:tempfile].read
+  }
+  ""
+end
 
 get '' do
   redirect to('/')
