@@ -7,6 +7,7 @@ require 'diff/lcs'
 require 'time'
 require 'json'
 require 'openssl'
+require 'qu-mongo'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
