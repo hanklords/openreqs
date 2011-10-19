@@ -26,13 +26,6 @@ describe "An Openreqs application", :type => :request do
     source.should == key
   end
   
-  it "can receive registration requests" do
-    post "/a/peers/register", "user" => "me", "name" => "example.com",
-      "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
-    last_response.status.should == 200
-    last_response.body.should be_empty
-  end
-  
   it "rejects registration requests without user" do
     post "/a/peers/register", "name" => "example.com",
       "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
@@ -49,4 +42,16 @@ describe "An Openreqs application", :type => :request do
     post "/a/peers/register", "name" => "example.com", "user" => "me"
     last_response.status.should == 400
   end
+  
+  it "can receive registration requests" do
+    post "/a/peers/register", "user" => "me", "name" => "example.com",
+      "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
+    last_response.status.should == 200
+    last_response.body.should be_empty
+  end
+  
+#   it "displays registration requests" do
+#     visit "/a/peers/registration_requests"
+#     p source
+#   end
 end

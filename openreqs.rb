@@ -343,6 +343,25 @@ get '/a/key.pem' do
   key.to_pem
 end
 
+get '/a/peers/registration_requests' do
+  content_type :txt
+  mongo["peers.register"].find.map {|requests|
+    requests["user"] + "@" + requests["_name"] + "\n"
+  }
+end
+
+post '/a/peers/accept' do
+  peer_request = mongo["peers.register"].find_one("_name" => params[:name], "user" => params[:user])
+  not_found if peer_request.nil?
+  peer = {
+    "_name" => peer_request["_name"],
+    "user"  => peer_request["user"],
+    "key"   => peer_request["key"]
+  }
+  mongo["peers"].save peer
+  ""
+end
+
 post '/a/peers/register' do
   user, name, key = params[:user], params[:name], params[:key]
   error 400, "user not provided in register request" if user.nil?
@@ -356,6 +375,7 @@ post '/a/peers/register' do
     "user" => user, "_name" => name,
     "key" => key[:tempfile].read
   }
+  mongo["peers.register"].save peer_request
   ""
 end
 
