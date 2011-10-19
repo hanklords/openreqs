@@ -8,6 +8,7 @@ require 'time'
 require 'json'
 require 'openssl'
 require 'qu-mongo'
+require 'socket'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
@@ -332,51 +333,89 @@ before {content_type :html, :charset => 'utf-8'}
 
 get '/a/key.pem' do
   content_type :pem
-  self_peer = mongo["peers"].find_one("_name" => "self")
+  self_peer = mongo["peers"].find_one("self" => true)
   if self_peer.nil?
+    name = Socket.gethostname
     gen_key = OpenSSL::PKey::RSA.new(2048)
-    self_peer = {"_name" => "self", "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem}
+    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
     mongo["peers"].save self_peer
   end
 
-  key = OpenSSL::PKey::RSA.new(self_peer["key"])
-  key.to_pem
+  self_peer["key"]
 end
 
-get '/a/peers/registration_requests' do
-  content_type :txt
-  mongo["peers.register"].find.map {|requests|
-    requests["user"] + "@" + requests["_name"] + "\n"
-  }
+get '/a/peers' do
+  @peers = mongo["peers"].find("self" => {"$ne" => true})
+  @requests = mongo["peers.register"].find
+  
+  haml %{
+%ul
+  - @peers.each do |peer|
+    %li= peer["_name"]
+%form(method="post")
+  %ul
+    - @requests.each do |request|
+      - user = request["_name"]
+      %li
+        %input(type="checkbox" name="users[]" value=user)= user
+  %input#save(type="submit" value="Sauver")
+}  
 end
 
-post '/a/peers/accept' do
-  peer_request = mongo["peers.register"].find_one("_name" => params[:name], "user" => params[:user])
+post '/a/peers' do
+  users  = params[:users] || []
+  peer_request = mongo["peers.register"].find_one("_name" => {"$in" => users})
   not_found if peer_request.nil?
   peer = {
     "_name" => peer_request["_name"],
-    "user"  => peer_request["user"],
     "key"   => peer_request["key"]
   }
+  
+  mongo["peers.register"].remove("_id" => peer_request["_id"])
   mongo["peers"].save peer
-  ""
+  redirect to("/a/peers")
 end
 
 post '/a/peers/register' do
-  user, name, key = params[:user], params[:name], params[:key]
+  content_type :txt
+  user, key = params[:user], params[:key]
   error 400, "user not provided in register request" if user.nil?
-  error 400, "name not provided in register request" if name.nil?
   if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
     error 400, "key not provided in register request"
   end
 
   peer_request = {"date" => Time.now.utc,
     "ip" => request.ip, "user_agent" => request.user_agent,
-    "user" => user, "_name" => name,
+    "_name" => user,
     "key" => key[:tempfile].read
   }
   mongo["peers.register"].save peer_request
-  ""
+  "OK"
+end
+
+post '/a/peers/:name/verify' do
+  peer = mongo["peers"].find_one("_name" => params[:name])
+  error 404, "KO peer #{params[:name]} unknown" if peer.nil?
+  
+  key = OpenSSL::PKey::RSA.new(peer["key"])
+  request.body.rewind
+  data = request.body.read
+
+  sig = env["HTTP_X_OR_SIGNATURE"].unpack('m0')[0] rescue ""
+  content_type :txt
+  if key.verify(OpenSSL::Digest::SHA1.new, sig, data)
+    "OK"
+  else
+    error 400, "KO Bad Signature"
+  end
+end
+
+get '/a/peers/:name.pem' do
+  peer = mongo["peers"].find_one("_name" => params[:name])
+  not_found if peer.nil?
+
+  content_type :pem
+  peer["key"]
 end
 
 get '' do
