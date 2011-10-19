@@ -3,7 +3,7 @@ require "rack/test"
 require 'tempfile'
 
 
-describe "The peers registration manager", :type => :request do
+describe "The peers registration manager" do
   include Rack::Test::Methods
   def app; Capybara.app end
     
@@ -12,32 +12,42 @@ describe "The peers registration manager", :type => :request do
     @pem_file = Tempfile.new('pem')
     @pem_file.write gen_key.public_key.to_pem
     @name = "me@example.com"
+    @local_url = "http://localhost:9999/application"
   end
   
   before(:each) {@pem_file.rewind}
   after(:all) {@pem_file.close}
-    
-  it "rejects registration requests without user" do
-    post "/a/peers/register",
-      "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
-    last_response.status.should == 400
-  end
   
   it "rejects registration requests without key" do
-    post "/a/peers/register", "user" => @name
+    post "/a/peers/#@name/register", "local_url" => @local_url
     last_response.status.should == 400
+    last_response.body.should match(/^KO/)
+  end
+    
+  it "rejects registration requests without local url" do
+    post "/a/peers/#@name/register",
+      "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
+    last_response.status.should == 400
+    last_response.body.should match(/^KO/)
   end
   
   it "receives registration requests" do
-    post "/a/peers/register", "user" => @name,
+    post "/a/peers/#@name/register",
+      "local_url" => @local_url,
       "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
     last_response.status.should == 200
     last_response.body.should == "OK"
-  end
-  
-  it "displays registration requests" do
-    visit "/a/peers"
-    find("input[type='checkbox']").value.should == @name
+    
+    # Check database
+    @pem_file.rewind
+    peer_request = @db["peers.register"].find_one
+    peer_request.should be
+    peer_request.delete "_id"
+    peer_request.delete "date"
+    peer_request.should == {
+      "_name" => @name, "user_agent" => nil,
+      "local_url" => @local_url, "key" => @pem_file.read, "ip" => "127.0.0.1"
+    }
   end
 end
 
@@ -45,10 +55,11 @@ describe "The peers manager", :type => :request do
   before(:all) do
     @key = OpenSSL::PKey::RSA.new(128)
     @name = "me@example.com"
+    @local_url = "http://localhost:9999/application"
     
     peer_request = {"date" => Time.now.utc,
       "ip" => "127.0.0.1", "user_agent" => "User Agent",
-      "_name" => @name,
+      "_name" => @name, "local_url" => @local_url,
       "key" => @key.public_key.to_pem
     }
     @db["peers.register"].save peer_request
@@ -64,6 +75,11 @@ describe "The peers manager", :type => :request do
     source.should == key
   end
 
+  it "displays registration requests" do
+    visit "/a/peers"
+    find("input[type='checkbox']").value.should == @name
+  end
+  
   it "accepts registrations" do
     visit "/a/peers"
     check("users[]")
@@ -72,7 +88,7 @@ describe "The peers manager", :type => :request do
     current_path.should == "/a/peers"
     all("input[type='checkbox']").should be_empty
   end
-   
+  
   it "displays peers" do
     visit "/a/peers"
     find("li").text.strip.should == @name
@@ -92,9 +108,10 @@ describe "The peers manager signature verifier" do
   before(:all) do
     @key = OpenSSL::PKey::RSA.new(2048)
     @name = "me@example.com"
+    @local_url = "http://localhost:9999/application"
     @data = "CONTENT"
     
-    peer = {"_name" => @name, "key" => @key.public_key.to_pem}
+    peer = {"_name" => @name, "key" => @key.public_key.to_pem, "local_url" => @local_url}
     @db["peers"].save peer
   end
   

@@ -368,7 +368,8 @@ post '/a/peers' do
   not_found if peer_request.nil?
   peer = {
     "_name" => peer_request["_name"],
-    "key"   => peer_request["key"]
+    "key"   => peer_request["key"],
+    "local_url" => peer_request["local_url"]
   }
   
   mongo["peers.register"].remove("_id" => peer_request["_id"])
@@ -376,17 +377,18 @@ post '/a/peers' do
   redirect to("/a/peers")
 end
 
-post '/a/peers/register' do
+post '/a/peers/:name/register' do
   content_type :txt
-  user, key = params[:user], params[:key]
-  error 400, "user not provided in register request" if user.nil?
+  name, local_url, key = params[:name], params[:local_url], params[:key]
+  error 400, "KO user not provided in register request" if name.nil?
+  error 400, "KO local url not provided in register request" if local_url.nil?
   if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
-    error 400, "key not provided in register request"
+    error 400, "KO key not provided in register request"
   end
 
   peer_request = {"date" => Time.now.utc,
     "ip" => request.ip, "user_agent" => request.user_agent,
-    "_name" => user,
+    "_name" => name, "local_url" => local_url,
     "key" => key[:tempfile].read
   }
   mongo["peers.register"].save peer_request
@@ -394,6 +396,7 @@ post '/a/peers/register' do
 end
 
 post '/a/peers/:name/verify' do
+  content_type :txt
   peer = mongo["peers"].find_one("_name" => params[:name])
   error 404, "KO peer #{params[:name]} unknown" if peer.nil?
   
@@ -402,7 +405,6 @@ post '/a/peers/:name/verify' do
   data = request.body.read
 
   sig = env["HTTP_X_OR_SIGNATURE"].unpack('m0')[0] rescue ""
-  content_type :txt
   if key.verify(OpenSSL::Digest::SHA1.new, sig, data)
     "OK"
   else
