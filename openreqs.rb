@@ -344,16 +344,16 @@ get '/a/key.pem' do
 end
 
 post '/a/peers/register' do
-  user, host, key = params[:user], params[:host], params[:key]
+  user, name, key = params[:user], params[:name], params[:key]
   error 400, "user not provided in register request" if user.nil?
-  error 400, "host not provided in register request" if host.nil?
+  error 400, "name not provided in register request" if name.nil?
   if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
     error 400, "key not provided in register request"
   end
 
   peer_request = {"date" => Time.now.utc,
     "ip" => request.ip, "user_agent" => request.user_agent,
-    "user" => user, "host" => host,
+    "user" => user, "_name" => name,
     "key" => key[:tempfile].read
   }
   ""

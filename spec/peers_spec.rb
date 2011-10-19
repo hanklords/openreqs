@@ -27,26 +27,26 @@ describe "An Openreqs application", :type => :request do
   end
   
   it "can receive registration requests" do
-    post "/a/peers/register", "user" => "me", "host" => "example.com",
+    post "/a/peers/register", "user" => "me", "name" => "example.com",
       "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
     last_response.status.should == 200
     last_response.body.should be_empty
   end
   
   it "rejects registration requests without user" do
-    post "/a/peers/register", "host" => "example.com",
+    post "/a/peers/register", "name" => "example.com",
       "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
     last_response.status.should == 400
   end
   
-  it "rejects registration requests without host" do
+  it "rejects registration requests without name" do
     post "/a/peers/register", "user" => "me",
       "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
     last_response.status.should == 400
   end  
   
   it "rejects registration requests without key" do
-    post "/a/peers/register", "host" => "example.com", "user" => "me"
+    post "/a/peers/register", "name" => "example.com", "user" => "me"
     last_response.status.should == 400
   end
 end
