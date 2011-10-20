@@ -420,6 +420,34 @@ get '/a/peers/:name.pem' do
   peer["key"]
 end
 
+get '/a/peers/authenticate' do
+  @name, @peer, @session, @return_to = params[:name], params[:peer], params[:session], params[:return_to]
+
+  self_peer = mongo["peers"].find_one("self" => true)
+  if self_peer.nil?
+    name = Socket.gethostname
+    gen_key = OpenSSL::PKey::RSA.new(2048)
+    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
+    mongo["peers"].save self_peer
+  end
+  key = OpenSSL::PKey::RSA.new(self_peer["private_key"])
+  
+  return_params = {"name" => @name, "session" => @session}
+  sig_base_str = return_params.map {|k,v| URI.escape(k) + "=" + URI.escape(v)}.sort.join("&")
+  @sig = [key.sign(OpenSSL::Digest::SHA1.new, sig_base_str)].pack('m0').gsub(/\n$/,'')
+  
+  haml %q{
+%div
+  Do you want to authenticate yourself as #{@name} on #{@peer} ?
+  %form(action=@return_to)
+    %input(type="hidden" name="name" value=@name)
+    %input(type="hidden" name="session" value=@session)
+    %input(type="hidden" name="signature" value=@sig)
+
+    %input#save(type="submit" value="Ok")
+}
+end
+
 get '' do
   redirect to('/')
 end

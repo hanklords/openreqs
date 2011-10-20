@@ -101,7 +101,7 @@ describe "The peers manager", :type => :request do
   end
 end
   
-describe "The peers manager signature verifier" do
+describe "The peers signature verifier" do
   include Rack::Test::Methods
   def app; Capybara.app end
   
@@ -147,5 +147,14 @@ describe "The peers manager signature verifier" do
     header "content-type", "text/plain"
     header "x-or-signature", sig
     post "/a/peers/#@name/verify", @data
+  end
+end
+
+describe "The peers authenticater", :type => :request do
+  it "authenticate users" do
+    session = OpenSSL::Random.random_bytes(16).unpack("H*")[0]
+    args = {"name" => "example", "peer" => "self", "session" => session, "return_to" => "http://example.com"}
+    visit "/a/peers/authenticate?#{URI.encode_www_form(args)}"
+    p html
   end
 end
