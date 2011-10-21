@@ -1,3 +1,6 @@
+lib = File.expand_path('../lib', __FILE__)
+$:.unshift lib unless $:.include?(lib)
+
 require 'sinatra'
 require 'haml'
 require 'creola/html'
@@ -8,6 +11,7 @@ require 'time'
 require 'json'
 require 'openssl'
 require 'qu-mongo'
+require 'openreqs/jobs'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
@@ -444,6 +448,11 @@ get '/a/peers/authenticate' do
 
     %input#save(type="submit" value="Ok")
 }
+end
+
+post '/a/clone' do
+  Qu.enqueue Clone, params[:url]
+  ""
 end
 
 get '' do

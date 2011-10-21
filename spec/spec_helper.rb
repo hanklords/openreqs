@@ -11,6 +11,9 @@ configure do
   disable :show_exceptions
 end
 
+Qu.configure do |c|
+  c.connection = Mongo::Connection.new.db("openreqs-qu-test")
+end
 
 Capybara.app = Sinatra::Application
 
@@ -19,5 +22,13 @@ RSpec.configure do |config|
     @db = Capybara.app.mongo
     @db.connection.drop_database(@db.name)
     @docs, @requirements = @db["docs"], @db["requirements"]
+  end
+  
+  config.after(:all) do
+    db_sinatra = Capybara.app.mongo
+    db_sinatra.connection.drop_database(db_sinatra.name)
+    
+    db_qu = Qu.backend.connection
+    db_qu.connection.drop_database(db_qu.name)
   end
 end

@@ -172,3 +172,13 @@ describe "The peers authenticater", :type => :request do
     source.should == "OK"
   end
 end
+
+describe "The cloner" do
+  include Rack::Test::Methods
+  def app; Capybara.app end
+  
+  it "can clone" do
+    post "/a/clone", :url => "/"
+    Qu::Worker.new.work_off
+  end
+end
