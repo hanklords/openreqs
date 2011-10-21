@@ -101,7 +101,7 @@ describe "The peers manager", :type => :request do
   end
 end
   
-describe "The peers signature verifier" do
+describe "The peers authentication verifier" do
   include Rack::Test::Methods
   def app; Capybara.app end
   
@@ -109,52 +109,66 @@ describe "The peers signature verifier" do
     @key = OpenSSL::PKey::RSA.new(2048)
     @name = "me@example.com"
     @local_url = "http://localhost:9999/application"
-    @data = "CONTENT"
-    
+    @session = OpenSSL::Random.random_bytes(16).unpack("H*")[0]
+
     peer = {"_name" => @name, "key" => @key.public_key.to_pem, "local_url" => @local_url}
     @db["peers"].save peer
   end
   
   it "rejects unknown peers" do
-    header "content-type", "text/plain"
-    header "x-or-signature", "BAD_SIGNATURE"
-    post "/a/peers/unknown/verify", @data
+    post "/a/peers/unknown/authentication", :session => @session, :name => "unknown", :signature => "BAD_SIGNATURE"
 
     last_response.status.should == 404
     last_response.body.should match(/^KO/)
   end
   
+  it "rejects unknown sessions"
+  
   it "rejects not signed requests" do
-    header "content-type", "text/plain"
-    post "/a/peers/#@name/verify", @data
+    post "/a/peers/#@name/authentication", :session => @session, :name => @name
 
     last_response.status.should == 400
     last_response.body.should match(/^KO/)
   end
     
   it "rejects bad signatures" do
-    header "content-type", "text/plain"
-    header "x-or-signature", "BAD_SIGNATURE"
-    post "/a/peers/#@name/verify", @data
+    post "/a/peers/#@name/authentication", :session => @session, :name => @name, :signature => "BAD_SIGNATURE"
 
     last_response.status.should == 400
     last_response.body.should match(/^KO/)
   end
     
   it "verifies signatures of messages" do
-    sig = [@key.sign(OpenSSL::Digest::SHA1.new, @data)].pack('m0').gsub(/\n$/,'')
+    auth_params = {:session => @session, :name => @name}
+    sig_base_str = auth_params.map {|k,v| URI.escape(k.to_s) + "=" + URI.escape(v.to_s)}.sort.join("&")
+    auth_params["signature"] = [@key.sign(OpenSSL::Digest::SHA1.new, sig_base_str)].pack('m0').gsub(/\n$/,'')
 
-    header "content-type", "text/plain"
-    header "x-or-signature", sig
-    post "/a/peers/#@name/verify", @data
+    post "/a/peers/#@name/authentication", auth_params
+    
+    last_response.status.should == 200
+    last_response.body.should == "OK"
   end
 end
 
 describe "The peers authenticater", :type => :request do
+  before(:all) do
+    @key = OpenSSL::PKey::RSA.new(2048)
+    @name = "me@example.com"
+    @local_url = "http://localhost:9999/application"
+    @data = "CONTENT"
+    
+    peer = {"_name" => @name, "key" => @key.public_key.to_pem, "local_url" => @local_url}
+    self_peer = {"_name" => @name, "private_key" => @key.to_pem, "key" => @key.public_key.to_pem, "self" => true}
+    @db["peers"].save peer
+    @db["peers"].save self_peer
+  end  
+  
   it "authenticate users" do
     session = OpenSSL::Random.random_bytes(16).unpack("H*")[0]
-    args = {"name" => "example", "peer" => "self", "session" => session, "return_to" => "http://example.com"}
+    args = {"name" => @name, "peer" => @name, "session" => session, "return_to" => "/a/peers/#@name/authentication"}
     visit "/a/peers/authenticate?#{URI.encode_www_form(args)}"
-    p html
+    click_on "save"
+    
+    source.should == "OK"
   end
 end
