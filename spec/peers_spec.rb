@@ -173,25 +173,28 @@ describe "The peers authenticater", :type => :request do
   end
 end
 
-describe "The cloner" do
-  include Rack::Test::Methods
-  def app; Capybara.app end
-  
+describe "The cloner", :type => :request do
   it "can clone" do
     FakeWeb.allow_net_connect = false
 
-    docs = ["doc1", "doc2"]
+    docs, reqs = ["doc1", "doc2"], ["req1"]
     doc1 = [{"_name" => "doc1", "date" => Time.now.utc, "_content" => "doc1 content"}]
     doc2 = [{"_name" => "doc2", "date" => Time.now.utc, "_content" => "doc2 content"}]
-    
+    req1 = [{"_name" => "req1", "date" => Time.now.utc, "_content" => "req1 content"}]
+
     url = "http://example.com"
     FakeWeb.register_uri :get, url + "/d.json", :body => docs.to_json
     FakeWeb.register_uri :get, url + "/d/doc1.json?with_history=1", :body => doc1.to_json
     FakeWeb.register_uri :get, url + "/d/doc2.json?with_history=1", :body => doc2.to_json
-    
-    post "/a/clone", :url => url
+    FakeWeb.register_uri :get, url + "/r.json", :body => reqs.to_json
+    FakeWeb.register_uri :get, url + "/r/req1.json?with_history=1", :body => req1.to_json
+
+    visit "/a/clone"
+    fill_in "url", :with => url
+    click_on "clone"
     Qu::Worker.new.work_off
     
     @db["docs"].find.count.should == 2
-  end
+    @db["requirements"].find.count.should == 1
+ end
 end

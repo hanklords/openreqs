@@ -12,10 +12,6 @@ configure do
   disable :show_exceptions
 end
 
-Qu.configure do |c|
-  c.connection = Mongo::Connection.new.db("openreqs-qu-test")
-end
-
 Capybara.app = Sinatra::Application
 
 RSpec.configure do |config|

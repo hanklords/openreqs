@@ -15,7 +15,11 @@ require 'openreqs/jobs'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
-   mime_type :pem, "application/x-pem-file"
+  mime_type :pem, "application/x-pem-file"
+  
+  Qu.configure do |c|
+    c.connection = Mongo::Connection.new.db(settings.mongo.name + "-qu")
+  end
 end
 
 helpers do
@@ -447,6 +451,16 @@ get '/a/peers/authenticate' do
       %input(type="hidden" name=k value=v)
 
     %input#save(type="submit" value="Ok")
+}
+end
+
+get '/a/clone' do
+    haml %q{
+%div
+  Enter the Openreqs server address:
+  %form(method="post")
+    %input(type="text" name="url")
+    %input#clone(type="submit" value="Clone")
 }
 end
 
