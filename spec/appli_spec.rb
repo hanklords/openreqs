@@ -176,8 +176,22 @@ describe "A document", :type => :request do
     body.should include(@doc_text)
   end
   
-  it "has a json view (.json)"
-  it "has a versioned json view (.json)"
+  it "has a json view (.json)" do
+    visit "/d/#@doc_name.json"
+    page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+    json = JSON.load(source)
+    json.should include("_name" => @doc_name, "_content" => @doc_content)
+    p json["_reqs"]
+    json["_reqs"].should have(1).items
+  end
+  
+  it "has a versioned json view (.json)" do
+    visit "/d/#@doc_name.json?with_history=1"
+    page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+    json = JSON.load(source)
+    json.should have(1).items
+    json[0].should include("_name" => @doc_name, "_content" => @doc_content)
+  end
 
   context "in the main view" do
     it "links back to the summary" do

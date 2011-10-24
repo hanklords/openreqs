@@ -51,7 +51,7 @@ class Doc
       { "_name" => {"$in" => requirement_list},
         "date"=> {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
-    )
+    ).to_a
   end
   
   def requirements
@@ -63,11 +63,21 @@ class Doc
   end
   
   def to_json(with_history = false)
-    doc = @doc.clone
-    doc.delete("_id")
-    doc["_requirements"] = find_requirements.to_a
-    doc["_requirements"].each {|req| req.delete("_id")}
-    doc.to_json
+    if with_history
+      @db["docs"].find({
+          "_name" => @name,
+          "date" => {"$lte" => @options[:date]}
+        }, {
+          :sort => ["date", :desc],
+          :fields => {"_id" => 0}
+      }).to_a.to_json
+    else
+      doc = @doc.clone
+      reqs = requirements.values.map {|req| req.req}
+      doc.delete("_id")
+      doc["_reqs"] = reqs.each {|req| req.delete("_id")}
+      doc.to_json
+    end
   end
   
   def to_hash; @doc end
@@ -237,7 +247,7 @@ class ReqDiff
 end
 
 class Req
-  attr_reader :options
+  attr_reader :options, :req
   def initialize(db, name, options = {})
     @db, @options = db, options
     @options[:date] ||= Time.now.utc + 1
@@ -339,7 +349,7 @@ get '/d/:doc.json' do
   not_found if !@doc.exist?
   
   content_type :json
-  @doc.to_json
+  @doc.to_json(params[:with_history] == "1")
 end
 
 get '/d/:doc' do
