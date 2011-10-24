@@ -73,10 +73,8 @@ class Doc
     @db["docs"].find({
         "_name" => @name,
         "date" => {"$lte" => @options[:date]}
-      }, {
-        :sort => ["date", :desc],
-        :fields => {"_id" => 0}
-    }).to_a.to_json    
+      }, {:sort => ["date", :desc]}
+    ).to_a.each {|doc| doc.delete("_id")}.to_json    
   end
   
   def to_hash; @doc end
@@ -292,9 +290,8 @@ class Req
         "_name" => name,
         "date" => {"$lt" => @options[:date]}
       }, {
-        :sort => ["date", :desc],
-        :fields => {"_id" => 0}
-    }).to_a.to_json
+        :sort => ["date", :desc]}
+    ).to_a.each {|req| req.delete("_id")}.to_json
   end
 end
 
