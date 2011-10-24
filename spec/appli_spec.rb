@@ -366,8 +366,20 @@ describe "A requirement", :type => :request do
     body.should include(@req_content)
   end
   
-  it "has a json view (.json)"
-  it "has a versioned json view (.json)"
+  it "has a json view (.json)" do
+    visit "/r/#@req_name.json"
+    page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+    json = JSON.load(source)
+    json.should include("_name" => @req_name, "_content" => @req_content)
+  end
+  
+  it "has a versioned json view (.json)" do
+    visit "/r/#@req_name.json?with_history=1"
+    page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+    json = JSON.load(source)
+    json.should have(1).items
+    json[0].should include("_name" => @req_name, "_content" => @req_content)
+  end
 
   context "in the main view" do
     it "links to the edit view" do

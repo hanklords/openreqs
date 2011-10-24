@@ -286,6 +286,16 @@ class Req
     req.delete("_id")
     req.to_json
   end
+
+  def to_json_with_history
+    @db["requirements"].find({
+        "_name" => name,
+        "date" => {"$lt" => @options[:date]}
+      }, {
+        :sort => ["date", :desc],
+        :fields => {"_id" => 0}
+    }).to_a.to_json
+  end
 end
 
 class EmptyReq < Req
@@ -467,7 +477,7 @@ get '/r/:req.json' do
   not_found if !@req.exist?
 
   content_type :json
-  @req.to_json
+  params[:with_history] == "1" ? @req.to_json_with_history : @req.to_json
 end
 
 get '/r/:req.txt' do
