@@ -345,6 +345,11 @@ get '/' do
   haml :index
 end
 
+get '/d.json' do
+  content_type :json
+  mongo["docs"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
+end
+
 get '/d/:doc.txt' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -459,6 +464,11 @@ get '/d/:doc/:date/diff' do
   @diff = DocDiff.new(@doc_b, @doc_a, :context => self)
   
   haml :doc_diff
+end
+
+get '/r.json' do
+  content_type :json
+  mongo["requirements"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
 end
 
 get '/r/:req/add' do

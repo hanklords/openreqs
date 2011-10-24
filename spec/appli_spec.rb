@@ -163,6 +163,13 @@ describe "A document", :type => :request do
     @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date - 10)
     @requirements.save("_name" => @req_name, "_content" => @req_new_content, "date" => @date + 30)
  end
+ 
+ it "is listed in the json document list" do
+   visit "/d.json"
+   page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+   json = JSON.load(source)
+   json.should == [@doc_name, @other_doc_name]
+ end
   
   it "has a text view (.txt)" do
     visit "/d/#@doc_name.txt"
@@ -354,6 +361,13 @@ describe "A requirement", :type => :request do
     @requirements.save("_name" => @req_name, "_content" => @req_content, "date" => @date)
   end
  
+  it "is listed in the json requirements list" do
+    visit "/r.json"
+    page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
+    json = JSON.load(source)
+    json.should == [@req_name]
+  end
+  
   it "has a text view (.txt)" do
     visit "/r/#@req_name.txt"
     page.response_headers["Content-Type"].should == "text/plain;charset=utf-8"
