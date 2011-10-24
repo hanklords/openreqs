@@ -178,7 +178,20 @@ describe "The cloner" do
   def app; Capybara.app end
   
   it "can clone" do
-    post "/a/clone", :url => "/"
+    FakeWeb.allow_net_connect = false
+
+    docs = ["doc1", "doc2"]
+    doc1 = [{"_name" => "doc1", "date" => Time.now.utc, "_content" => "doc1 content"}]
+    doc2 = [{"_name" => "doc2", "date" => Time.now.utc, "_content" => "doc2 content"}]
+    
+    url = "http://example.com"
+    FakeWeb.register_uri :get, url + "/d.json", :body => docs.to_json
+    FakeWeb.register_uri :get, url + "/d/doc1.json?with_history=1", :body => doc1.to_json
+    FakeWeb.register_uri :get, url + "/d/doc2.json?with_history=1", :body => doc2.to_json
+    
+    post "/a/clone", :url => url
     Qu::Worker.new.work_off
+    
+    @db["docs"].find.count.should == 2
   end
 end
