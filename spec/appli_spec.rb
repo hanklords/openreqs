@@ -181,7 +181,6 @@ describe "A document", :type => :request do
     page.response_headers["Content-Type"].should == "application/json;charset=utf-8"
     json = JSON.load(source)
     json.should include("_name" => @doc_name, "_content" => @doc_content)
-    p json["_reqs"]
     json["_reqs"].should have(1).items
   end
   

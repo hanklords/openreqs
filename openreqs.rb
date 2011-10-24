@@ -62,22 +62,21 @@ class Doc
     }
   end
   
-  def to_json(with_history = false)
-    if with_history
-      @db["docs"].find({
-          "_name" => @name,
-          "date" => {"$lte" => @options[:date]}
-        }, {
-          :sort => ["date", :desc],
-          :fields => {"_id" => 0}
-      }).to_a.to_json
-    else
-      doc = @doc.clone
-      reqs = requirements.values.map {|req| req.req}
-      doc.delete("_id")
-      doc["_reqs"] = reqs.each {|req| req.delete("_id")}
-      doc.to_json
-    end
+  def to_json(*args)
+    doc = @doc.clone
+    doc.delete("_id")
+    doc["_reqs"] = requirements.values
+    doc.to_json
+  end
+  
+  def to_json_with_history
+    @db["docs"].find({
+        "_name" => @name,
+        "date" => {"$lte" => @options[:date]}
+      }, {
+        :sort => ["date", :desc],
+        :fields => {"_id" => 0}
+    }).to_a.to_json    
   end
   
   def to_hash; @doc end
@@ -247,7 +246,7 @@ class ReqDiff
 end
 
 class Req
-  attr_reader :options, :req
+  attr_reader :options
   def initialize(db, name, options = {})
     @db, @options = db, options
     @options[:date] ||= Time.now.utc + 1
@@ -282,7 +281,7 @@ class Req
     str << "\n"
   end
   
-  def to_json(with_history = false)
+  def to_json(*args)
     req = @req.clone
     req.delete("_id")
     req.to_json
@@ -349,7 +348,7 @@ get '/d/:doc.json' do
   not_found if !@doc.exist?
   
   content_type :json
-  @doc.to_json(params[:with_history] == "1")
+  params[:with_history] == "1" ? @doc.to_json_with_history : @doc.to_json
 end
 
 get '/d/:doc' do
