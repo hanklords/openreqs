@@ -9,6 +9,9 @@ class Clone
   
   def self.perform(url)
     db = Sinatra::Application.mongo
+    db["docs"].remove
+    db["requirements"].remove
+    
     docs_list = Net::HTTP.get(URI.parse(url + "/d.json"))
     docs = JSON.load(docs_list)
     docs.each {|doc_name|
