@@ -351,6 +351,23 @@ get '/a/key.pem' do
   self_peer["key"]
 end
 
+get '/a.json' do
+  content_type :json
+  
+  self_peer = mongo["peers"].find_one("self" => true)
+  if self_peer.nil?
+    name = request.host
+    gen_key = OpenSSL::PKey::RSA.new(2048)
+    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
+    mongo["peers"].save self_peer
+  end
+
+  self_peer.delete("_id")
+  self_peer.delete("private_key")
+  self_peer.delete("self")
+  self_peer.to_json
+end
+
 get '/a/peers' do
   @peers = mongo["peers"].find("self" => {"$ne" => true})
   @requests = mongo["peers.register"].find
