@@ -29,3 +29,24 @@ class Clone
     }
   end
 end
+
+class Find
+  def self.uri_escape(uri)
+    uri.gsub(/([^a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end
+  end
+  
+  def self.perform(url)
+    mongo = Sinatra::Application.mongo
+    
+    remote_text = Net::HTTP.get(URI.parse(url + "/a.json"))
+    remote = JSON.load(remote_text)
+    peer_request = {
+      "date" => Time.now.utc, "server" => true,
+      "_name" => remote["_name"], "local_url" => url,
+      "key" => remote["key"]
+    }
+    mongo["peers.register"].save peer_request
+  end
+end

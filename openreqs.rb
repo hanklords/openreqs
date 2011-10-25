@@ -383,7 +383,16 @@ get '/a/peers' do
       %li
         %input(type="checkbox" name="users[]" value=user)= user
   %input#save(type="submit" value="Sauver")
+%form{:action => to("/a/peers/add"), :method => "post"}
+  %input(type="text" name="server")
+  %input#add(type="submit" value="Add")
 }  
+end
+
+post '/a/peers/add' do
+  Qu.enqueue Find, params[:server]
+  
+  redirect to("/a/peers")
 end
 
 post '/a/peers' do
