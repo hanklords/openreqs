@@ -13,6 +13,7 @@ configure do
 end
 
 Capybara.app = Sinatra::Application
+FakeWeb.allow_net_connect = false
 
 RSpec.configure do |config|
   config.before(:all) do

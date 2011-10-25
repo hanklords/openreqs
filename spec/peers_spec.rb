@@ -99,6 +99,24 @@ describe "The peers manager", :type => :request do
     page.response_headers["Content-Type"].should == "application/x-pem-file"
     source.should match(/^-----BEGIN RSA PUBLIC KEY-----$/)
   end
+  
+  it "can add a peer" do
+    url = "http://example.com/openreqs"
+    remote_name = "server_name"
+    remote = {"_name" => remote_name, "key" => "KEY"}
+    FakeWeb.register_uri :get, url + "/a.json", :body => remote.to_json
+
+    visit "/a/peers"
+    fill_in "server", :with => url
+    click_on "add"
+    
+    current_path.should == "/a/peers"
+    
+    Qu::Worker.new.work_off
+    
+    visit "/a/peers"
+    find("input[type='checkbox']").value.should == remote_name
+  end
 end
   
 describe "The peers authentication verifier" do
@@ -175,8 +193,6 @@ end
 
 describe "The cloner", :type => :request do
   it "can clone" do
-    FakeWeb.allow_net_connect = false
-
     docs, reqs = ["doc1", "doc2"], ["req1"]
     doc1 = [{"_name" => "doc1", "date" => Time.now.utc, "_content" => "doc1 content"}]
     doc2 = [{"_name" => "doc2", "date" => Time.now.utc, "_content" => "doc2 content"}]
