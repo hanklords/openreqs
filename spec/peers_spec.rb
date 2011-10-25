@@ -158,7 +158,7 @@ describe "The peers authentication verifier" do
     
   it "verifies signatures of messages" do
     auth_params = {:session => @session, :name => @name}
-    sig_base_str = auth_params.map {|k,v| URI.escape(k.to_s) + "=" + URI.escape(v.to_s)}.sort.join("&")
+    sig_base_str = "name=me%40example.com&session=#@session"
     auth_params["signature"] = [@key.sign(OpenSSL::Digest::SHA1.new, sig_base_str)].pack('m0').gsub(/\n$/,'')
 
     post "/a/peers/#@name/authentication", auth_params

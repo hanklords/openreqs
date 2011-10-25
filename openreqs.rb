@@ -12,6 +12,7 @@ require 'json'
 require 'openssl'
 require 'qu-mongo'
 require 'openreqs/jobs'
+require 'openreqs/peers'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
@@ -339,37 +340,21 @@ set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
 
 get '/a/key.pem' do
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+  
   content_type :pem
-  self_peer = mongo["peers"].find_one("self" => true)
-  if self_peer.nil?
-    name = request.host
-    gen_key = OpenSSL::PKey::RSA.new(2048)
-    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
-    mongo["peers"].save self_peer
-  end
-
-  self_peer["key"]
+  self_peer.key
 end
 
 get '/a.json' do
-  content_type :json
+  self_peer = SelfPeer.new(mongo, :host => request.host)
   
-  self_peer = mongo["peers"].find_one("self" => true)
-  if self_peer.nil?
-    name = request.host
-    gen_key = OpenSSL::PKey::RSA.new(2048)
-    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
-    mongo["peers"].save self_peer
-  end
-
-  self_peer.delete("_id")
-  self_peer.delete("private_key")
-  self_peer.delete("self")
+  content_type :json
   self_peer.to_json
 end
 
 get '/a/peers' do
-  @peers = mongo["peers"].find("self" => {"$ne" => true})
+  @peers = Peer.all(mongo)
   @requests = mongo["peers.register"].find
   
   haml %{
@@ -430,27 +415,50 @@ end
 
 post '/a/peers/:name/authentication' do
   content_type :txt
-  peer = mongo["peers"].find_one("_name" => params[:name])
-  error 404, "KO peer #{params[:name]} unknown" if peer.nil?
+  peer = Peer.new(mongo, :name => params[:name])
+  error 404, "KO peer #{params[:name]} unknown" if !peer.exist?
   
-  key = OpenSSL::PKey::RSA.new(peer["key"])
-  sig = params.delete("signature").unpack('m0')[0] rescue ""
-  sig_base_str = params.map {|k,v| URI.escape(k) + "=" + URI.escape(v)}.sort.join("&")
-  
-
-  if key.verify(OpenSSL::Digest::SHA1.new, sig, sig_base_str)
+  sig = params.delete("signature")
+  if peer.verify(sig, params)
     "OK"
   else
     error 400, "KO Bad Signature"
   end
 end
 
+get '/a/peers/authenticate' do
+  @name, @peer, @session, @return_to = params[:name], params[:peer], params[:session], params[:return_to]
+
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+  
+  @return_params = {:name => @name, :session => @session}
+  @return_params["signature"] = self_peer.sign(@return_params)
+  
+  haml %q{
+%div
+  Do you want to authenticate yourself as #{@name} on #{@peer} ?
+  %form(action=@return_to method="post")
+    - @return_params.each do |k,v|
+      %input(type="hidden" name=k value=v)
+
+    %input#save(type="submit" value="Ok")
+}
+end
+
+get '/a/peers/:name.pem' do
+  peer = Peer.new(mongo, :name => params[:name])
+  not_found if !peer.exist?
+
+  content_type :pem
+  peer.key
+end
+
 get '/a/peers/:name' do
   @name = params[:name]
-  @peer = mongo["peers"].find_one("_name" => @name)
-  @documents = @peer["docs"] || []
-  not_found if @peer.nil?
+  @peer = Peer.new(mongo, :name => @name)
+  not_found if !@peer.exist?
 
+  @documents = @peer["docs"] || []
   haml %q{
 %h2 Documents
 %ul
@@ -466,41 +474,6 @@ post '/a/peers/:name/sync' do
   Qu.enqueue Sync, params[:name]
   
   redirect to("/a/peers/#{params[:name]}")  
-end
-
-get '/a/peers/:name.pem' do
-  peer = mongo["peers"].find_one("_name" => params[:name])
-  not_found if peer.nil?
-
-  content_type :pem
-  peer["key"]
-end
-
-get '/a/peers/authenticate' do
-  @name, @peer, @session, @return_to = params[:name], params[:peer], params[:session], params[:return_to]
-
-  self_peer = mongo["peers"].find_one("self" => true)
-  if self_peer.nil?
-    name = request.host
-    gen_key = OpenSSL::PKey::RSA.new(2048)
-    self_peer = {"_name" => name, "private_key" => gen_key.to_pem, "key" => gen_key.public_key.to_pem, "self" => true}
-    mongo["peers"].save self_peer
-  end
-  key = OpenSSL::PKey::RSA.new(self_peer["private_key"])
-  
-  @return_params = {:name => @name, :session => @session}
-  sig_base_str = @return_params.map {|k,v| URI.escape(k.to_s) + "=" + URI.escape(v.to_s)}.sort.join("&")
-  @return_params["signature"] = [key.sign(OpenSSL::Digest::SHA1.new, sig_base_str)].pack('m0').gsub(/\n$/,'')
-  
-  haml %q{
-%div
-  Do you want to authenticate yourself as #{@name} on #{@peer} ?
-  %form(action=@return_to method="post")
-    - @return_params.each do |k,v|
-      %input(type="hidden" name=k value=v)
-
-    %input#save(type="submit" value="Ok")
-}
 end
 
 get '/a/clone' do
