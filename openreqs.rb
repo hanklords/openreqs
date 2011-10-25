@@ -382,16 +382,18 @@ end
 
 post '/a/peers' do
   users  = params[:users] || []
-  peer_request = mongo["peers.register"].find_one("_name" => {"$in" => users})
-  not_found if peer_request.nil?
-  peer = {
-    "_name" => peer_request["_name"],
-    "key"   => peer_request["key"],
-    "local_url" => peer_request["local_url"]
+  peer_requests = mongo["peers.register"].find("_name" => {"$in" => users})
+
+  peer_requests.each {|peer_request|
+    peer = {
+      "_name" => peer_request["_name"],
+      "key"   => peer_request["key"],
+      "local_url" => peer_request["local_url"]
+    }
+    
+    mongo["peers.register"].remove("_id" => peer_request["_id"])
+    mongo["peers"].save peer
   }
-  
-  mongo["peers.register"].remove("_id" => peer_request["_id"])
-  mongo["peers"].save peer
   redirect to("/a/peers")
 end
 
