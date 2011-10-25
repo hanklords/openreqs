@@ -50,3 +50,22 @@ class Find
     mongo["peers.register"].save peer_request
   end
 end
+
+class Sync
+  def self.uri_escape(uri)
+    uri.gsub(/([^a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end
+  end
+  
+  def self.perform(remote_name)
+    mongo = Sinatra::Application.mongo
+    
+    remote = mongo["peers"].find_one("_name" => remote_name)
+    docs_list = Net::HTTP.get(URI.parse(remote["local_url"] + "/d.json"))
+    docs = JSON.load(docs_list)
+    remote["docs"] = docs
+    
+    mongo["peers.register"].save remote
+  end
+end

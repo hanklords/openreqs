@@ -445,6 +445,29 @@ post '/a/peers/:name/authentication' do
   end
 end
 
+get '/a/peers/:name' do
+  @name = params[:name]
+  @peer = mongo["peers"].find_one("_name" => @name)
+  @documents = @peer["docs"] || []
+  not_found if @peer.nil?
+
+  haml %q{
+%h2 Documents
+%ul
+  - @documents.each do |doc|
+    %li= doc
+    
+%form{:action => to("/a/peers/#{@name}/sync"), :method => "post"}
+  %input#sync(type="submit" value="Sync")
+}
+end
+
+post '/a/peers/:name/sync' do
+  Qu.enqueue Sync, params[:name]
+  
+  redirect to("/a/peers/#{params[:name]}")  
+end
+
 get '/a/peers/:name.pem' do
   peer = mongo["peers"].find_one("_name" => params[:name])
   not_found if peer.nil?
