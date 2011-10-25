@@ -41,7 +41,7 @@ class Doc
     @options[:date] ||= Time.now.utc + 1
     @doc = @db["docs"].find_one(
       {"_name" => @name,
-       "date" => {"$lte" => @options[:date]}
+       "date" => {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
     )
   end
@@ -83,7 +83,7 @@ class Doc
   def to_json_with_history
     @db["docs"].find({
         "_name" => @name,
-        "date" => {"$lte" => @options[:date]}
+        "date" => {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
     ).to_a.each {|doc| doc.delete("_id")}.to_json    
   end
