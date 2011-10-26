@@ -231,6 +231,22 @@ post '/d/:doc/edit' do
   redirect to('/d/' + params[:doc])
 end
 
+get '/d/:doc/history.json' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+
+  @dates = mongo["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
+  req_names = CreolaExtractURL.new(@doc["_content"]).to_a
+  @dates.concat mongo["requirements"].find({
+    "_name" => {"$in" => req_names},
+    "date"=> {"$gt" => @dates[0]}
+   }, {:fields => "date"}).map {|req| req["date"]}
+  @dates = @dates.sort.reverse
+  
+  content_type :json
+  @dates.to_json
+end
+
 get '/d/:doc/history' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
