@@ -128,7 +128,20 @@ get '/a/peers/:name' do
   @peer = Peer.new(mongo, :name => @name)
   not_found if !@peer.exist?
 
-  @documents = @peer["docs"] || []
+  @versions = @peer["docs"] || {}
+  self_versions = Hash.new {|h,k| h[k] = []}
+  mongo["docs"].find(
+      {"_name" => {"$in" => @versions.keys}},
+      {:fields => ["_name", "date"]}
+    ).each {|doc|
+    self_versions[doc["_name"]] << doc["date"]
+  }
+  
+  @versions.each {|k,versions|
+    self_max = self_versions[k].max
+    @versions[k] = versions.select {|v| v > self_max}
+  }
+
   haml :peer
 end
 

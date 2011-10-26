@@ -62,9 +62,15 @@ class Sync
     mongo = Sinatra::Application.mongo
     
     remote = mongo["peers"].find_one("_name" => remote_name)
+    doc_versions = remote["docs"] = {}
+    
     docs_list = Net::HTTP.get(URI.parse(remote["local_url"] + "/d.json"))
     docs = JSON.load(docs_list)
-    remote["docs"] = docs
+    docs.each {|doc|
+      version_list = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc)}/history.json"))
+      versions = JSON.load(version_list)
+      doc_versions[doc] = versions.map {|v| Time.parse(v)}
+    }
     
     mongo["peers"].save remote
   end
