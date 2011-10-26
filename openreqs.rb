@@ -257,7 +257,7 @@ get '/d/:doc/history.json' do
   @dates = @dates.sort.reverse
   
   content_type :json
-  @dates.to_json
+  @dates.map {|d| d.xmlschema(2)}.to_json
 end
 
 get '/d/:doc/history' do
@@ -385,7 +385,7 @@ get '/r/:req/history.json' do
   @dates = mongo["requirements"].find({"_name" => params[:req]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
 
   content_type :json
-  @dates.to_json
+  @dates.map {|d| d.xmlschema(2)}.to_json
 end
 
 get '/r/:req/history' do
