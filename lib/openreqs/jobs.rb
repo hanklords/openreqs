@@ -66,6 +66,6 @@ class Sync
     docs = JSON.load(docs_list)
     remote["docs"] = docs
     
-    mongo["peers.register"].save remote
+    mongo["peers"].save remote
   end
 end
