@@ -47,7 +47,7 @@ class Find
       "_name" => remote["_name"], "local_url" => url,
       "key" => remote["key"]
     }
-    mongo["peers.register"].save peer_request
+    mongo["peers.register"].insert peer_request
   end
 end
 

@@ -378,7 +378,7 @@ post '/a/peers' do
     }
     
     mongo["peers.register"].remove("_id" => peer_request["_id"])
-    mongo["peers"].save peer
+    mongo["peers"].insert peer
   }
   redirect to("/a/peers")
 end
@@ -386,10 +386,12 @@ end
 post '/a/peers/:name/register' do
   content_type :txt
   name, local_url, key = params[:name], params[:local_url], params[:key]
-  error 400, "KO user not provided in register request" if name.nil?
-  error 400, "KO local url not provided in register request" if local_url.nil?
+  error 400, "KO No Local URL" if local_url.nil?
   if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
-    error 400, "KO key not provided in register request"
+    error 400, "KO No key"
+  end
+  if Peer.new(mongo, :name => params[:name]).exist?
+    error 500, "KO Peer already registered"
   end
 
   peer_request = {"date" => Time.now.utc,
@@ -397,7 +399,7 @@ post '/a/peers/:name/register' do
     "_name" => name, "local_url" => local_url,
     "key" => key[:tempfile].read
   }
-  mongo["peers.register"].save peer_request
+  mongo["peers.register"].insert peer_request
   "OK"
 end
 

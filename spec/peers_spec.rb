@@ -13,6 +13,9 @@ describe "The peers registration manager" do
     @pem_file.write gen_key.public_key.to_pem
     @name = "me@example.com"
     @local_url = "http://localhost:9999/application"
+    
+    @existing_peer_name = "existing_peer"
+    @db["peers"].save("_name" => @existing_peer_name, "key" => gen_key.public_key.to_pem, "local_url" => @local_url)
   end
   
   before(:each) {@pem_file.rewind}
@@ -31,6 +34,14 @@ describe "The peers registration manager" do
     last_response.body.should match(/^KO/)
   end
   
+  it "rejects registration requests for previously registered peers" do
+    post "/a/peers/#@existing_peer_name/register",
+        "local_url" => @local_url,
+        "key" => Rack::Test::UploadedFile.new(@pem_file.path, "application/x-pem-file")
+    last_response.status.should == 500
+    last_response.body.should match(/^KO/)
+  end
+    
   it "receives registration requests" do
     post "/a/peers/#@name/register",
       "local_url" => @local_url,
