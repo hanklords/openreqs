@@ -357,21 +357,7 @@ get '/a/peers' do
   @peers = Peer.all(mongo)
   @requests = mongo["peers.register"].find
   
-  haml %{
-%ul
-  - @peers.each do |peer|
-    %li= peer["_name"]
-%form(method="post")
-  %ul
-    - @requests.each do |request|
-      - user = request["_name"]
-      %li
-        %input(type="checkbox" name="users[]" value=user)= user
-  %input#save(type="submit" value="Sauver")
-%form{:action => to("/a/peers/add"), :method => "post"}
-  %input(type="text" name="server")
-  %input#add(type="submit" value="Add")
-}  
+  haml :peers
 end
 
 post '/a/peers/add' do
@@ -436,15 +422,7 @@ get '/a/peers/authenticate' do
   @return_params = {:name => @name, :session => @session}
   @return_params["signature"] = self_peer.sign(@return_params)
   
-  haml %q{
-%div
-  Do you want to authenticate yourself as #{@name} on #{@peer} ?
-  %form(action=@return_to method="post")
-    - @return_params.each do |k,v|
-      %input(type="hidden" name=k value=v)
-
-    %input#save(type="submit" value="Ok")
-}
+  haml :peers_authenticate
 end
 
 get '/a/peers/:name.pem' do
@@ -461,15 +439,7 @@ get '/a/peers/:name' do
   not_found if !@peer.exist?
 
   @documents = @peer["docs"] || []
-  haml %q{
-%h2 Documents
-%ul
-  - @documents.each do |doc|
-    %li= doc
-    
-%form{:action => to("/a/peers/#{@name}/sync"), :method => "post"}
-  %input#sync(type="submit" value="Sync")
-}
+  haml :peer
 end
 
 post '/a/peers/:name/sync' do
