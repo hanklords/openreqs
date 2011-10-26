@@ -365,6 +365,16 @@ get '/r/:req/edit' do
   haml :doc_req_edit
 end
 
+get '/r/:req/history.json' do
+  @req = Req.new(mongo, params[:req], :context => self)
+  not_found if !@req.exist?
+  
+  @dates = mongo["requirements"].find({"_name" => params[:req]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+
+  content_type :json
+  @dates.to_json
+end
+
 get '/r/:req/history' do
   @req = Req.new(mongo, params[:req], :context => self)
   not_found if !@req.exist?
