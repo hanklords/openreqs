@@ -51,6 +51,7 @@ class Doc
   def to_json(*args)
     doc = @doc.clone
     doc.delete("_id")
+    doc["date"] = doc["date"].xmlschema(2)
     doc["_reqs"] = requirements.values
     doc.to_json
   end
@@ -60,7 +61,10 @@ class Doc
         "_name" => @name,
         "date" => {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
-    ).to_a.each {|doc| doc.delete("_id")}.to_json    
+    ).to_a.each {|doc|
+      doc.delete("_id")
+      doc["date"] = doc["date"].xmlschema(2)
+    }.to_json
   end
   
   def to_hash; @doc end
@@ -168,6 +172,7 @@ class Req
   def to_json(*args)
     req = @req.clone
     req.delete("_id")
+    req["date"] = req["date"].xmlschema(2)
     req.to_json
   end
 
@@ -177,7 +182,10 @@ class Req
         "date" => {"$lt" => @options[:date]}
       }, {
         :sort => ["date", :desc]}
-    ).to_a.each {|req| req.delete("_id")}.to_json
+    ).to_a.each {|req|
+      req.delete("_id")
+      req["date"] = req["date"].xmlschema(2)
+    }.to_json
   end
 end
 
