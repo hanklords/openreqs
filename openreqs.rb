@@ -195,11 +195,15 @@ get '/d/:doc.txt' do
 end
 
 get '/d/:doc.json' do
-  @doc = Doc.new(mongo, params[:doc], :context => self)
+  if params[:with_history] == "1"
+    @doc = DocVersions.new(mongo, :name => params[:doc], :context => self)
+  else
+    @doc = Doc.new(mongo, params[:doc], :context => self)
+  end
   not_found if !@doc.exist?
   
   content_type :json
-  params[:with_history] == "1" ? @doc.to_json_with_history : @doc.to_json
+  @doc.to_json
 end
 
 get '/d/:doc' do
@@ -335,11 +339,15 @@ post '/r/:req/add' do
 end
 
 get '/r/:req.json' do
-  @req = Req.new(mongo, params[:req], :context => self)
+  if params[:with_history] == "1"
+    @req = ReqVersions.new(mongo, :name => params[:req], :context => self)
+  else
+    @req = Req.new(mongo, params[:req], :context => self)
+  end
   not_found if !@req.exist?
 
   content_type :json
-  params[:with_history] == "1" ? @req.to_json_with_history : @req.to_json
+  @req.to_json
 end
 
 get '/r/:req.txt' do

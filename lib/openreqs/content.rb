@@ -56,17 +56,6 @@ class Doc
     doc.to_json
   end
   
-  def to_json_with_history
-    @db["docs"].find({
-        "_name" => @name,
-        "date" => {"$lt" => @options[:date]}
-      }, {:sort => ["date", :desc]}
-    ).to_a.each {|doc|
-      doc.delete("_id")
-      doc["date"] = doc["date"].xmlschema(2)
-    }.to_json
-  end
-  
   def to_hash; @doc end
   def to_html
     DocHTML.new(content,
@@ -76,6 +65,24 @@ class Doc
     ).to_html 
   end
   def to_txt; DocParserTxt.new(content, :name => name, :requirements => requirements).to_txt end
+end
+
+class DocVersions
+  def initialize(db, options = {})
+    @db, @options = db, options
+    @docs = @db["docs"].find({"_name" => @options[:name]}, {:sort => ["date", :desc]})
+  end
+  
+  def exist?; @docs.count > 0 end
+  def name; @options[:name] end
+  def dates; @docs.map {|doc| doc["date"]} end
+
+  def to_json(*args)
+    @docs.to_a.each {|doc|
+      doc.delete("_id")
+      doc["date"] = doc["date"].xmlschema(2)
+    }.to_json
+  end
 end
       
 class DocIndex < Doc
@@ -175,16 +182,22 @@ class Req
     req["date"] = req["date"].xmlschema(2)
     req.to_json
   end
+end
 
-  def to_json_with_history
-    @db["requirements"].find({
-        "_name" => name,
-        "date" => {"$lt" => @options[:date]}
-      }, {
-        :sort => ["date", :desc]}
-    ).to_a.each {|req|
-      req.delete("_id")
-      req["date"] = req["date"].xmlschema(2)
+class ReqVersions
+  def initialize(db, options = {})
+    @db, @options = db, options
+    @reqs = @db["requirements"].find({"_name" => @options[:name]}, {:sort => ["date", :desc]})
+  end
+  
+  def exist?; @reqs.count > 0 end
+  def name; @options[:name] end
+  def dates; @reqs.map {|doc| doc["date"]} end
+
+  def to_json(*args)
+    @reqs.to_a.each {|doc|
+      doc.delete("_id")
+      doc["date"] = doc["date"].xmlschema(2)
     }.to_json
   end
 end
