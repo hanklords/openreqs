@@ -78,9 +78,10 @@ class DocVersions
   def dates; @docs.map {|doc| doc["date"]} end
 
   def to_json(*args)
-    @docs.to_a.each {|doc|
+    @docs.map {|doc|
       doc.delete("_id")
       doc["date"] = doc["date"].xmlschema(2)
+      doc
     }.to_json
   end
 end
@@ -195,9 +196,10 @@ class ReqVersions
   def dates; @reqs.map {|doc| doc["date"]} end
 
   def to_json(*args)
-    @reqs.to_a.each {|doc|
+    @reqs.map {|doc|
       doc.delete("_id")
       doc["date"] = doc["date"].xmlschema(2)
+      doc
     }.to_json
   end
 end
