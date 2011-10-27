@@ -196,7 +196,8 @@ end
 
 get '/d/:doc.json' do
   if params[:with_history] == "1"
-    @doc = DocVersions.new(mongo, :name => params[:doc], :context => self)
+    after = Time.xmlschema(params[:after]) rescue nil
+    @doc = DocVersions.new(mongo, :name => params[:doc], :after => after)
   else
     @doc = Doc.new(mongo, params[:doc], :context => self)
   end
