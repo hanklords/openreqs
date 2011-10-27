@@ -219,7 +219,10 @@ get '/d/:doc/requirements.json' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   if params[:with_history] == "1"
-    @reqs = @doc.requirement_list.map {|req_name| ReqVersions.new(mongo, :name => req_name, :context => self) }
+    after = Time.xmlschema(params[:after]) rescue nil
+    @reqs = @doc.requirement_list.map {|req_name|
+      ReqVersions.new(mongo, :name => req_name, :after => after, :context => self)
+    }
   else
     @reqs = @doc.requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
   end
@@ -354,7 +357,8 @@ end
 
 get '/r/:req.json' do
   if params[:with_history] == "1"
-    @req = ReqVersions.new(mongo, :name => params[:req], :context => self)
+    after = Time.xmlschema(params[:after]) rescue nil
+    @req = ReqVersions.new(mongo, :name => params[:req], :after => after, :context => self)
   else
     @req = Req.new(mongo, params[:req], :context => self)
   end
