@@ -13,8 +13,10 @@ class Doc
   attr_reader :name, :options
   def initialize(db, name, options = {})
     @db, @name, @options = db, name, options
+    @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
+    @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     @options[:date] ||= Time.now.utc + 1
-    @doc = @db["docs"].find_one(
+    @doc = @docs_table.find_one(
       {"_name" => @name,
        "date" => {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
@@ -33,7 +35,7 @@ class Doc
   end
   
   def find_requirements
-    @all_reqs ||= @db["requirements"].find(
+    @all_reqs ||= @requirements_table.find(
       { "_name" => {"$in" => requirement_list},
         "date"=> {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
@@ -151,7 +153,8 @@ class Req
     @req = @options[:req]
     
     if @req.nil? 
-      @req = @db["requirements"].find_one(
+      @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
+      @req = @requirements_table.find_one(
         {"_name" => name,
         "date" => {"$lt" => @options[:date]}
         }, {:sort => ["date", :desc]}
@@ -190,7 +193,9 @@ end
 class ReqVersions
   def initialize(db, options = {})
     @db, @options = db, options
-    @reqs = @db["requirements"].find({"_name" => @options[:name]}, {:sort => ["date", :desc]})
+    find_options = {"_name" => @options[:name]}
+    find_options["date"] = {"$gt" => @options[:after]} if @options[:after]
+    @reqs = @db["requirements"].find(find_options, {:sort => ["date", :desc]})
   end
   
   def exist?; @reqs.count > 0 end

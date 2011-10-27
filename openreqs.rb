@@ -128,21 +128,34 @@ get '/a/peers/:name' do
   @peer = Peer.new(mongo, :name => @name)
   not_found if !@peer.exist?
 
-  @versions = @peer["docs"] || {}
-  self_versions = Hash.new {|h,k| h[k] = []}
-  mongo["docs"].find(
-      {"_name" => {"$in" => @versions.keys}},
-      {:fields => ["_name", "date"]}
-    ).each {|doc|
-    self_versions[doc["_name"]] << doc["date"]
-  }
-  
-  @versions.each {|k,versions|
-    self_max = self_versions[k].max
-    @versions[k] = versions.select {|v| v > self_max}
-  }
-
+  @docs = mongo["docs.#@name"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq
   haml :peer
+end
+
+get '/a/peers/:peer/d/:doc' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc.exist?
+  @name = @doc.name
+  
+  haml :doc
+end
+
+get '/a/peers/:peer/d/:doc/diff' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc_a = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc_a.exist?
+  
+  @doc_b = Doc.new(mongo, params[:doc], :context => self)
+
+  @name = params[:doc]
+  @diff = DocDiff.new(@doc_b, @doc_a, :context => self)
+  
+  haml :doc_diff
 end
 
 post '/a/peers/:name/sync' do

@@ -62,16 +62,33 @@ class Sync
     mongo = Sinatra::Application.mongo
     
     remote = mongo["peers"].find_one("_name" => remote_name)
-    doc_versions = remote["docs"] = {}
+    doc_versions = {}
     
     docs_list = Net::HTTP.get(URI.parse(remote["local_url"] + "/d.json"))
     docs = JSON.load(docs_list)
-    docs.each {|doc|
-      version_list = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc)}/history.json"))
-      versions = JSON.load(version_list)
-      doc_versions[doc] = versions.map {|v| Time.parse(v)}
+    mongo["docs.#{remote_name}"].remove
+    mongo["requirements.#{remote_name}"].remove
+
+    self_versions = {}
+    mongo["docs"].find(
+      {"_name" => {"$in" => docs}},
+      {:fields => ["_name", "date"], :sort => ["date", :desc]}
+    ).each {|doc|
+      self_versions[doc["_name"]] ||= doc["date"]
     }
     
-    mongo["peers"].save remote
+    docs.each {|doc_name|
+      self_date = self_versions[doc_name]
+      doc_json = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc_name)}.json?with_history=1&after=#{self_date.xmlschema(2)}"))
+      doc = JSON.load(doc_json)
+      doc.each {|v| v["date"] = Time.parse(v["date"])}
+      
+      reqs_json = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc_name)}/requirements.json?with_history=1&after=#{self_date.xmlschema(2)}"))
+      reqs = JSON.load(reqs_json).flatten
+      reqs.each {|v| v["date"] = Time.parse(v["date"])}
+      
+      mongo["docs.#{remote_name}"].insert doc
+      mongo["requirements.#{remote_name}"].insert reqs
+    }
   end
 end
