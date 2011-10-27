@@ -215,6 +215,19 @@ get '/d/:doc' do
   haml :doc
 end
 
+get '/d/:doc/requirements.json' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  if params[:with_history] == "1"
+    @reqs = @doc.requirement_list.map {|req_name| ReqVersions.new(mongo, :name => req_name, :context => self) }
+  else
+    @reqs = @doc.requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
+  end
+
+  content_type :json
+  @reqs.to_json
+end
+
 get '/d/:doc/add' do
   @name = params[:doc]
   
