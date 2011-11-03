@@ -15,6 +15,7 @@ class Peer
   def [](attr); exist? ? @peer[attr] : nil end
   def key; self["key"] end
   def name; self["_name"] end
+  def local_url; self["local_url"] end
     
   def to_json
     peer = @peer.clone
