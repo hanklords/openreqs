@@ -199,6 +199,19 @@ get '/d.json' do
   mongo["docs"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
 end
 
+get '/d' do
+  @docs = mongo["docs"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq
+  
+  haml %q{
+%ul
+  - @docs.each do |doc|
+    %li
+      %a{:href => to("/d/#{doc}")}= doc
+      %form{:method => "post", :action => to("/d/#{doc}/delete")}
+        %input.delete(type="submit" value="Supprimer")
+}
+end
+
 get '/d/:doc.txt' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -242,6 +255,14 @@ get '/d/:doc/requirements.json' do
 
   content_type :json
   @reqs.to_json
+end
+
+post '/d/:doc/delete' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+ 
+  mongo["docs"].remove "_name" => @doc.name
+  redirect to('/d')
 end
 
 get '/d/:doc/add' do
