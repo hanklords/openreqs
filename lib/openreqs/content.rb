@@ -72,9 +72,10 @@ end
 class DocVersions
   def initialize(db, options = {})
     @db, @options = db, options
+    @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     find_options = {"_name" => @options[:name]}
     find_options["date"] = {"$gt" => @options[:after]} if @options[:after]
-    @docs = @db["docs"].find(find_options, {:sort => ["date", :desc]})
+    @docs = @docs_table.find(find_options, {:sort => ["date", :desc]})
   end
   
   def exist?; @docs.count > 0 end
