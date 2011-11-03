@@ -16,7 +16,9 @@ class Doc
     @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
     @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     @options[:date] ||= Time.now.utc + 1
-    @doc = @docs_table.find_one(
+    @doc = @options[:doc]
+
+    @doc ||= @docs_table.find_one(
       {"_name" => @name,
        "date" => {"$lt" => @options[:date]}
       }, {:sort => ["date", :desc]}
@@ -70,6 +72,8 @@ class Doc
 end
 
 class DocVersions
+  include Enumerable
+  
   def initialize(db, options = {})
     @db, @options = db, options
     @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
@@ -82,6 +86,10 @@ class DocVersions
   def name; @options[:name] end
   def dates; @docs.map {|doc| doc["date"]} end
 
+  def each
+    @docs.each {|doc| yield Doc.new(@db, name, @options.merge(:doc => doc))}
+  end
+  
   def to_json(*args)
     @docs.map {|doc|
       doc.delete("_id")
