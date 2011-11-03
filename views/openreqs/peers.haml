@@ -1,6 +1,7 @@
 %ul
   - @peers.each do |peer|
-    %li= peer["_name"]
+    %li
+      %a{:href => to("/a/peers/#{peer["_name"]}")}= peer["_name"]
 %form(method="post")
   %ul
     - @requests.each do |request|
