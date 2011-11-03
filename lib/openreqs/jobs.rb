@@ -79,11 +79,15 @@ class Sync
     
     docs.each {|doc_name|
       self_date = self_versions[doc_name]
-      doc_json = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc_name)}.json?with_history=1&after=#{self_date.xmlschema(2)}"))
+      doc_url = remote["local_url"] + "/d/#{uri_escape(doc_name)}.json?with_history=1"
+      doc_url << "&after=#{self_date.xmlschema(2)}" if self_date
+      doc_json = Net::HTTP.get(URI.parse(doc_url))
       doc = JSON.load(doc_json)
       doc.each {|v| v["date"] = Time.parse(v["date"])}
       
-      reqs_json = Net::HTTP.get(URI.parse(remote["local_url"] + "/d/#{uri_escape(doc_name)}/requirements.json?with_history=1&after=#{self_date.xmlschema(2)}"))
+      reqs_url = remote["local_url"] + "/d/#{uri_escape(doc_name)}/requirements.json?with_history=1"
+      reqs_url << "&after=#{self_date.xmlschema(2)}" if self_date
+      reqs_json = Net::HTTP.get(URI.parse(reqs_url))
       reqs = JSON.load(reqs_json).flatten
       reqs.each {|v| v["date"] = Time.parse(v["date"])}
       
