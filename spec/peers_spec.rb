@@ -80,7 +80,7 @@ describe "The peers manager", :type => :request do
     visit "/a/key.pem"
     page.response_headers["Content-Type"].should == "application/x-pem-file"
     key = source
-    key.should match(/^-----BEGIN RSA PUBLIC KEY-----$/)
+    key.should match(/^-----BEGIN PUBLIC KEY-----$/)
     
     visit "/a/key.pem"
     source.should == key
@@ -108,7 +108,7 @@ describe "The peers manager", :type => :request do
   it "provides peer keys" do
     visit "/a/peers/#@name.pem"
     page.response_headers["Content-Type"].should == "application/x-pem-file"
-    source.should match(/^-----BEGIN RSA PUBLIC KEY-----$/)
+    source.should match(/^-----BEGIN PUBLIC KEY-----$/)
   end
   
   it "can add a peer" do
