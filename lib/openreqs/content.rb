@@ -79,15 +79,18 @@ class DocVersions
     @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     find_options = {"_name" => @options[:name]}
     find_options["date"] = {"$gt" => @options[:after]} if @options[:after]
-    @docs = @docs_table.find(find_options, {:sort => ["date", :desc]})
+    @docs = @docs_table.find(find_options, {:sort => ["date", :desc]}).to_a
   end
   
-  def exist?; @docs.count > 0 end
+  def empty?; @docs.count > 0 end
+  def exist?; !empty? end
+
   def name; @options[:name] end
   def dates; @docs.map {|doc| doc["date"]} end
 
   def each
     @docs.each {|doc| yield Doc.new(@db, name, @options.merge(:doc => doc))}
+    self
   end
   
   def to_json(*args)
@@ -200,17 +203,28 @@ class Req
 end
 
 class ReqVersions
+  include Enumerable
+
   def initialize(db, options = {})
     @db, @options = db, options
+    @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
     find_options = {"_name" => @options[:name]}
     find_options["date"] = {"$gt" => @options[:after]} if @options[:after]
-    @reqs = @db["requirements"].find(find_options, {:sort => ["date", :desc]})
+    @reqs = @requirements_table.find(find_options, {:sort => ["date", :desc]}).to_a
   end
   
-  def exist?; @reqs.count > 0 end
+
+  def empty?; @reqs.count == 0 end
+  def exist?; !empty? end
+
   def name; @options[:name] end
   def dates; @reqs.map {|doc| doc["date"]} end
 
+  def each
+    @reqs.each {|req| yield Req.new(@db, name, @options.merge(:req => req))}
+    self
+  end
+  
   def to_json(*args)
     @reqs.map {|doc|
       doc.delete("_id")

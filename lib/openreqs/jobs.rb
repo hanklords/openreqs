@@ -96,3 +96,44 @@ class Sync
     }
   end
 end
+
+class DocPull
+  def self.uri_escape(uri)
+    uri.gsub(/([^a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end
+  end
+  
+  def self.perform(remote_name, doc_name)
+    mongo = Sinatra::Application.mongo
+    
+    last_local_doc = mongo["docs"].find_one({"_name" => doc_name}, {:fields => "date", :sort => ["date", :desc]})
+    
+    # Insert docs
+    options = {}
+    remote_doc_versions = DocVersions.new(mongo,
+      :name => doc_name, :peer => remote_name,
+      :after => last_local_doc && last_local_doc["date"])
+    remote_doc_versions.each {|doc| mongo["docs"].insert doc.to_hash}
+    
+    last_remote_doc = remote_doc_versions.first.to_hash
+    last_remote_doc.delete("_id")
+    last_remote_doc["date"] = Time.now.utc
+    mongo["docs"].insert last_remote_doc
+    
+    # Inserts Reqs
+    remote_doc_versions.first.requirement_list.each {|req_name|
+      remote_req_versions = ReqVersions.new(mongo,
+        :name => req_name, :peer => remote_name,
+        :after => last_local_doc && last_local_doc["date"])
+      next if remote_req_versions.empty?
+      
+      remote_req_versions.each {|req| mongo["requirements"].insert req.to_hash}
+      
+      last_remote_req = remote_req_versions.first.to_hash
+      last_remote_req.delete("_id")
+      last_remote_req["date"] = Time.now.utc
+      mongo["requirements"].insert last_remote_req
+    }
+  end
+end

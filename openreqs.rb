@@ -158,6 +158,17 @@ get '/a/peers/:peer/d/:doc/diff' do
   haml :doc_diff
 end
 
+post '/a/peers/:peer/d/:doc/pull' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc.exist?
+  
+  Qu.enqueue DocPull, @peer.name, @doc.name
+  redirect to("/a/peers/#{@peer.name}")
+end
+
 post '/a/peers/:name/sync' do
   Qu.enqueue Sync, params[:name]
   
