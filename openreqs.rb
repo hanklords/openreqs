@@ -394,10 +394,10 @@ get '/r/:req/add' do
 end
 
 post '/r/:req/add' do
-  req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
+  req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.utc}
   mongo["requirements"].insert req
   
-  redirect to('/r/' + params[:doc])
+  redirect to('/r/' + params[:req])
 end
 
 get '/r/:req.json' do
