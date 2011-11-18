@@ -82,7 +82,7 @@ class DocVersions
     @docs = @docs_table.find(find_options, {:sort => ["date", :desc]}).to_a
   end
   
-  def empty?; @docs.count > 0 end
+  def empty?; @docs.empty? end
   def exist?; !empty? end
 
   def name; @options[:name] end
