@@ -1,0 +1,21 @@
+%html
+  %head
+    %title Peers
+  %body
+    %ul
+      - @peers.each do |peer|
+        %li
+          %a{:href => to("/a/peers/#{peer["_name"]}")}= peer["_name"]
+
+    - if @requests.count > 0
+      %form(method="post")
+        %ul
+          - @requests.each do |request|
+            - user = request["_name"]
+            %li
+              %input(type="checkbox" name="users[]" value=user)= user
+        %input#save(type="submit" value="Sauver")
+
+    %form{:action => to("/a/peers/add"), :method => "post"}
+      %input(type="text" name="server")
+      %input#add(type="submit" value="Add")

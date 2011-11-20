@@ -1,28 +1,16 @@
 %html
   %body
     %form(method="post")
-      %strong Attributes
+      %h2 Attributes
       %ul
-<<<<<<< HEAD
-        - @attributes.each do |k,v| 
-          %li #{k}: 
-          %input(name=k value="#{v}")
-=======
         - @req.attributes.each do |k,v| 
           %li #{k}: #{v}
->>>>>>> 88bdb80771531f76e7754518c098ead4144add71
         %li
           %input(name="key")
           \:
           %input(name="value")
-<<<<<<< HEAD
-      %strong Text
-      %br
-      %textarea(name="content" cols=80 rows=20)= @content
-=======
       %h2 Text
       %textarea(name="content" cols=80 rows=40)= @req.content
->>>>>>> 88bdb80771531f76e7754518c098ead4144add71
       %p
-      %input(type="submit" value="Sauver")
+      %input#save(type="submit" value="Sauver")
 

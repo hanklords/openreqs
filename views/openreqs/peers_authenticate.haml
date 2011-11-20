@@ -1,0 +1,7 @@
+%div
+  Do you want to authenticate yourself as #{@name} on #{@peer} ?
+  %form(action=@return_to method="post")
+    - @return_params.each do |k,v|
+      %input(type="hidden" name=k value=v)
+
+    %input#save(type="submit" value="Ok")

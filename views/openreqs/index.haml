@@ -6,8 +6,8 @@
   %body
     %div
       - if @date.nil?
-        %a{:href => to("/d/#@name/edit")} Edit the document
+        %a#edit{:href => to("/d/#@name/edit")} Edit the document
         |
-      %a{:href => to("/d/#@name/history")} History
+      %a#history{:href => to("/d/#@name/history")} History
 
     = @doc.to_html

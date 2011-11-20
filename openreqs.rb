@@ -1,318 +1,194 @@
-lib = File.expand_path('../lib/', __FILE__)
+lib = File.expand_path('../lib', __FILE__)
 $:.unshift lib unless $:.include?(lib)
 
 require 'sinatra'
 require 'haml'
-require 'creola/html'
-require 'creola/txt'
 require 'mongo'
-require 'diff/lcs'
 require 'time'
-require 'json'
+require 'qu-mongo'
+require 'openreqs/jobs'
+require 'openreqs/peers'
+require 'openreqs/content'
+require 'openreqs/diff'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
+  mime_type :pem, "application/x-pem-file"
+  
+  Qu.configure do |c|
+    c.connection = Mongo::Connection.new.db(settings.mongo.name + "-qu")
+  end
 end
 
 helpers do
   def mongo; settings.mongo end
 end
 
-# Creole extensions
-class CreolaExtractURL < Creola
-  def initialize(*args);  super; @links = [] end
-  alias :to_a :render
-  def root(content); @links end
-  def link(url, text, namespace); @links << url end
-end
-
-class Doc
-  attr_reader :name, :options
-  def initialize(db, name, options = {})
-    @db, @name, @options = db, name, options
-    @options[:date] ||= Time.now.utc + 1
-    @doc = @db["docs"].find_one(
-      {"_name" => @name,
-       "date" => {"$lte" => @options[:date]}
-      }, {:sort => ["date", :desc]}
-    )
-  end
-  
-  def exist?; !@doc.nil? end
-  def [](attr); exist? ? @doc[attr] : nil end
-  def date; self["date"] end
-  def content; self["_content"] || '' end
-  
-  def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
- 
-  def requirement_list
-    @requirement_list ||= CreolaExtractURL.new(content).to_a
-  end
-  
-  def find_requirements
-    @all_reqs ||= @db["requirements"].find(
-      { "_name" => {"$in" => requirement_list},
-        "date"=> {"$lt" => @options[:date]}
-      }, {:sort => ["date", :desc]}
-    )
-  end
-  
-  def requirements
-    @requirements ||= find_requirements.reduce({}) {|m, req|
-      req_name = req["_name"]
-      m[req_name] ||= Req.new(@db, nil, :req => req, :context => @options[:context]) if req["date"] < @options[:date]
-      m
-    }
-  end
-  
-  def to_json(with_history = false)
-    doc = @doc.clone
-    doc.delete("_id")
-    doc["_requirements"] = find_requirements.to_a
-    doc["_requirements"].each {|req| req.delete("_id")}
-    doc.to_json
-  end
-  
-  def to_hash; @doc end
-  def to_html
-    DocHTML.new(content,
-      :docs => docs,
-      :requirements => requirements,
-      :context => @options[:context]
-    ).to_html 
-  end
-  def to_txt; DocParserTxt.new(content, :name => name, :requirements => requirements).to_txt end
-end
-      
-class DocIndex < Doc
-  def initialize(db, options = {})
-    super(db, 'index', options)
-    if !exist?
-      @doc = {"_name" => 'index', "_content" => '', "date" => Time.now.utc}
-      @db["docs"].insert @doc
-    end
-  end
-  
-  def requirement_list; [] end
-  def to_html; DocIndexHTML.new(content, :docs => docs, :context => @options[:context]).to_html end
-end
-
-class DocHTML < CreolaHTML
-  def heading(level, text); super(level + 1, text) end
-  def link(uri, text, namespace)
-    context = @options[:context]
-    
-    if uri =~ %r{^(http|ftp)://}
-      super(uri, text, namespace)
-    elsif req = @options[:requirements][uri]
-      ReqHTML.new(req, :context => context).to_html
-    elsif @options[:docs].include? uri
-      super(context.to("/d/#{uri}"), text || uri, namespace)
-    else
-      super(context.to("/r/" + uri + "/add"), text || uri, namespace)
-    end
-  end
-end
-
-class DocIndexHTML < CreolaHTML
-  def link(uri, text, namespace)
-    context = @options[:context]
-    
-    if @options[:docs].include? uri
-      super(context.to("/d/#{uri}"), text || uri, namespace)
-    else
-      super(context.to("/d/" + uri + "/add"), text || uri, namespace)
-    end
-  end
-end
-
-class DocParserTxt < CreolaTxt
-  def heading(level, text); super(level + 1, text) end
-  def link(uri, text, namespace)
-    if req = @options[:requirements][uri]
-      req.to_txt + "\n"
-    else
-      super(uri, text, namespace)
-    end
-  end
-  
-  def to_txt; "= #{@options[:name]} =\n\n" + super end
-end
-
-class CreolaList < CreolaTxt
-  def root(content); content.flatten end
-  def to_a; render end
-  undef_method :to_txt
-end
-
-class ContentDiff < CreolaHTML
-  def initialize(old_creole, new_creole, options = {})
-    @old_content = CreolaList.new(old_creole).to_a
-    @new_content = CreolaList.new(new_creole).to_a
-    super(nil, options)
-  end
-  
-  def match(event)
-    @discard_state = nil
-    @state = tokenize_string(event.new_element, @state)
-  end
-
-  def discard_a(event)
-    @discard_state = :remove
-    @state = tokenize_string(event.old_element, @state)
-  end
-
-  def discard_b(event)
-    @discard_state = :add
-    @state = tokenize_string(event.new_element, @state)
-  end
-  
-  def words(*words);
-    case @discard_state
-    when :remove
-      %{<span class="remove">} + words.join + "</span>"
-    when :add
-      %{<span class="add">} + words.join + "</span>"
-    else
-      words.join
-    end
-  end;
-  
-  private
-  def tokenize
-    @state = State::Root.new(self)
-    Diff::LCS.traverse_sequences(@old_content, @new_content, self)
-    @state = @state.parse(:EOS, nil)
-    root(@state.finish)
-  end
-end
-
-class DocDiff < ContentDiff
-  def initialize(doc_old, doc_new, options = {})
-    @doc_old, @doc_new = doc_old, doc_new
-    super(@doc_old.content, @doc_new.content, options)
-  end
-  
-  def heading(level, text); super(level + 1, text) end
-  def link(uri, text, namespace)
-    req_old = @doc_old.requirements[uri]
-    req_new = @doc_new.requirements[uri]
-    if req_old || req_new
-      case @discard_state
-      when :remove
-        ReqDiff.new(req_old, EmptyReq.new, @options).to_html
-      when :add
-        ReqDiff.new(EmptyReq.new, req_new, @options).to_html
-      else
-        ReqDiff.new(req_old, req_new, @options).to_html
-      end
-    elsif @doc_old.docs.include?(uri) || @doc_new.docs.include?(uri)
-      super(@options[:context].to("/d/#{uri}"), text, namespace)
-    else
-      super(uri, text, namespace)
-    end
-  end
-  
-end
-
-class ReqDiff
-  TEMPLATE = 'req_inline.haml'
-  def initialize(req_old, req_new, options = {})
-    @req_old, @req_new, @options = req_old, req_new, options
-    @context = @options[:context]
-    @content = ContentDiff.new(req_old.content, req_new.content)
-  end
-
-  def attributes
-    @attributes ||= Hash[@req_new.attributes.map {|k,v| [k, CreolaHTML.new(v)]}]
-  end
-  
-  attr_reader :content
-  def name; @req_new.name || @req_old.name end
-  def date; @req_new.date || @req_old.date end
-        
-  def to_html
-    template = File.join(@context.settings.views, TEMPLATE)
-    engine = Haml::Engine.new(File.read(template))
-    @context.instance_variable_set :@reqp, self
-    engine.render(@context)
-  end
-end
-
-class Req
-  attr_reader :options
-  def initialize(db, name, options = {})
-    @db, @options = db, options
-    @options[:date] ||= Time.now.utc + 1
-    @req = @options[:req]
-    
-    if @req.nil? 
-      @req = @db["requirements"].find_one(
-        {"_name" => name,
-        "date" => {"$lt" => @options[:date]}
-        }, {:sort => ["date", :desc]}
-      )
-    end
-  end
-  
-  def attributes
-    exist? ? @req.select {|k,v| k !~ /^_/ && k != "date" } : []
-  end
-  
-  def exist?; !@req.nil? end
-  def [](attr); exist? ? @req[attr] : nil end
-  def date; self["date"] end
-  def content; self["_content"] || '' end
-  def name; self["_name"] end
-  def to_hash; @req end
-  def to_txt
-    str = "==== #{name} ====\n\n"
-    str << content << "\n\n"
-    str << "* date: #{date}\n"
-    attributes.each {|k, v|
-      str << "* #{k}: #{v}\n"
-    }
-    str << "\n"
-  end
-  
-  def to_json(with_history = false)
-    req = @req.clone
-    req.delete("_id")
-    req.to_json
-  end
-end
-
-class EmptyReq < Req
-  def initialize; end
-end
-
-class ReqHTML
-  TEMPLATE = 'req_inline.haml'
-  def initialize(req, options = {})
-    @req, @options = req, options
-    @context = @options[:context]
-  end
-  
-  def attributes
-    @attributes ||= Hash[@req.attributes.map {|k,v| [k, CreolaHTML.new(v)]}]
-  end
-  
-  def name; @req.name end
-  def date; @req.date end
-  def content; CreolaHTML.new(@req.content) end
-    
-  def to_html
-    template = File.join(@context.settings.views, TEMPLATE)
-    engine = Haml::Engine.new(File.read(template))
-    @context.instance_variable_set :@reqp, self
-    engine.render(@context)
-  end
-end
-
-
-# web application
 set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
+
+get '/a/key.pem' do
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+  
+  content_type :pem
+  self_peer.key
+end
+
+get '/a.json' do
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+  
+  content_type :json
+  self_peer.to_json
+end
+
+get '/a/peers' do
+  @peers = Peer.all(mongo)
+  @requests = mongo["peers.register"].find
+  
+  haml :peers
+end
+
+post '/a/peers/add' do
+  Qu.enqueue Find, params[:server]
+  
+  redirect to("/a/peers")
+end
+
+post '/a/peers' do
+  users  = params[:users] || []
+  peer_requests = mongo["peers.register"].find("_name" => {"$in" => users})
+
+  peer_requests.each {|peer_request|
+    peer = {
+      "_name" => peer_request["_name"],
+      "key"   => peer_request["key"],
+      "local_url" => peer_request["local_url"]
+    }
+    
+    mongo["peers.register"].remove("_id" => peer_request["_id"])
+    mongo["peers"].insert peer
+  }
+  redirect to("/a/peers")
+end
+
+post '/a/peers/:name/register' do
+  content_type :txt
+  name, local_url, key = params[:name], params[:local_url], params[:key]
+  error 400, "KO No Local URL" if local_url.nil?
+  if key.nil? || !key.is_a?(Hash) || key[:tempfile].nil?
+    error 400, "KO No key"
+  end
+  if Peer.new(mongo, :name => params[:name]).exist?
+    error 500, "KO Peer already registered"
+  end
+
+  peer_request = {"date" => Time.now.utc,
+    "ip" => request.ip, "user_agent" => request.user_agent,
+    "_name" => name, "local_url" => local_url,
+    "key" => key[:tempfile].read
+  }
+  mongo["peers.register"].insert peer_request
+  "OK"
+end
+
+post '/a/peers/:name/authentication' do
+  content_type :txt
+  peer = Peer.new(mongo, :name => params[:name])
+  error 404, "KO peer #{params[:name]} unknown" if !peer.exist?
+  
+  sig = params.delete("signature")
+  if peer.verify(sig, params)
+    "OK"
+  else
+    error 400, "KO Bad Signature"
+  end
+end
+
+get '/a/peers/authenticate' do
+  @name, @peer, @session, @return_to = params[:name], params[:peer], params[:session], params[:return_to]
+
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+  
+  @return_params = {:name => @name, :session => @session}
+  @return_params["signature"] = self_peer.sign(@return_params)
+  
+  haml :peers_authenticate
+end
+
+get '/a/peers/:name.pem' do
+  peer = Peer.new(mongo, :name => params[:name])
+  not_found if !peer.exist?
+
+  content_type :pem
+  peer.key
+end
+
+get '/a/peers/:name' do
+  @name = params[:name]
+  @peer = Peer.new(mongo, :name => @name)
+  not_found if !@peer.exist?
+
+  @docs = mongo["docs.#@name"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq
+  haml :peer
+end
+
+get '/a/peers/:peer/d/:doc' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc.exist?
+  @name = @doc.name
+  
+  haml :doc
+end
+
+get '/a/peers/:peer/d/:doc/diff' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc_a = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc_a.exist?
+  
+  @doc_b = Doc.new(mongo, params[:doc], :context => self)
+
+  @name = params[:doc]
+  @diff = DocDiff.new(@doc_b, @doc_a, :context => self)
+  
+  haml :doc_diff
+end
+
+post '/a/peers/:peer/d/:doc/pull' do
+  @peer = Peer.new(mongo, :name => params[:peer])
+  not_found if !@peer.exist?
+  
+  @doc = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
+  not_found if !@doc.exist?
+  
+  Qu.enqueue DocPull, @peer.name, @doc.name
+  redirect to("/a/peers/#{@peer.name}")
+end
+
+post '/a/peers/:name/sync' do
+  Qu.enqueue Sync, params[:name]
+  
+  redirect to("/a/peers/#{params[:name]}")  
+end
+
+get '/a/clone' do
+    haml %q{
+%div
+  Enter the Openreqs server address:
+  %form(method="post")
+    %input(type="text" name="url")
+    %input#clone(type="submit" value="Clone")
+}
+end
+
+post '/a/clone' do
+  Qu.enqueue Clone, params[:url]
+  ""
+end
 
 get '' do
   redirect to('/')
@@ -330,6 +206,24 @@ get '/' do
   haml :index
 end
 
+get '/d.json' do
+  content_type :json
+  mongo["docs"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
+end
+
+get '/d' do
+  @docs = mongo["docs"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq
+  
+  haml %q{
+%ul
+  - @docs.each do |doc|
+    %li
+      %a{:href => to("/d/#{doc}")}= doc
+      %form{:method => "post", :action => to("/d/#{doc}/delete")}
+        %input.delete(type="submit" value="Supprimer")
+}
+end
+
 get '/d/:doc.txt' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -339,7 +233,12 @@ get '/d/:doc.txt' do
 end
 
 get '/d/:doc.json' do
-  @doc = Doc.new(mongo, params[:doc], :context => self)
+  if params[:with_history] == "1"
+    after = Time.xmlschema(params[:after]) rescue nil
+    @doc = DocVersions.new(mongo, :name => params[:doc], :after => after)
+  else
+    @doc = Doc.new(mongo, params[:doc], :context => self)
+  end
   not_found if !@doc.exist?
   
   content_type :json
@@ -352,6 +251,30 @@ get '/d/:doc' do
   @name = @doc.name
   
   haml :doc
+end
+
+get '/d/:doc/requirements.json' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  if params[:with_history] == "1"
+    after = Time.xmlschema(params[:after]) rescue nil
+    @reqs = @doc.requirement_list.map {|req_name|
+      ReqVersions.new(mongo, :name => req_name, :after => after, :context => self)
+    }
+  else
+    @reqs = @doc.requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
+  end
+
+  content_type :json
+  @reqs.to_json
+end
+
+post '/d/:doc/delete' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+ 
+  mongo["docs"].remove "_name" => @doc.name
+  redirect to('/d')
 end
 
 get '/d/:doc/add' do
@@ -378,6 +301,7 @@ get '/d/:doc/edit' do
 end
 
 post '/d/:doc/edit' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
   doc_data = @doc.to_hash
   doc_data.delete "_id"
   doc_data["date"] = Time.now.utc
@@ -385,6 +309,22 @@ post '/d/:doc/edit' do
   mongo["docs"].save doc_data
 
   redirect to('/d/' + params[:doc])
+end
+
+get '/d/:doc/history.json' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+
+  @dates = mongo["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
+  req_names = CreolaExtractURL.new(@doc["_content"]).to_a
+  @dates.concat mongo["requirements"].find({
+    "_name" => {"$in" => req_names},
+    "date"=> {"$gt" => @dates[0]}
+   }, {:fields => "date"}).map {|req| req["date"]}
+  @dates = @dates.sort.reverse
+  
+  content_type :json
+  @dates.map {|d| d.xmlschema(2)}.to_json
 end
 
 get '/d/:doc/history' do
@@ -427,7 +367,7 @@ get '/d/:doc/:date' do
   not_found if !@doc.exist?
   
   @name = params[:doc]
-  haml :doc
+  haml :doc_version
 end
 
 get '/d/:doc/:date/diff' do
@@ -445,19 +385,29 @@ get '/d/:doc/:date/diff' do
   haml :doc_diff
 end
 
+get '/r.json' do
+  content_type :json
+  mongo["requirements"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
+end
+
 get '/r/:req/add' do
   haml :doc_req_add
 end
 
 post '/r/:req/add' do
-  req = {"_name" => params[:doc], "_content" => params[:content], "date" => Time.now.utc}
+  req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.utc}
   mongo["requirements"].insert req
   
-  redirect to('/r/' + params[:doc])
+  redirect to('/r/' + params[:req])
 end
 
 get '/r/:req.json' do
-  @req = Req.new(mongo, params[:req], :context => self)
+  if params[:with_history] == "1"
+    after = Time.xmlschema(params[:after]) rescue nil
+    @req = ReqVersions.new(mongo, :name => params[:req], :after => after, :context => self)
+  else
+    @req = Req.new(mongo, params[:req], :context => self)
+  end
   not_found if !@req.exist?
 
   content_type :json
@@ -500,7 +450,20 @@ get '/r/:req/edit' do
   haml :doc_req_edit
 end
 
+get '/r/:req/history.json' do
+  @req = Req.new(mongo, params[:req], :context => self)
+  not_found if !@req.exist?
+  
+  @dates = mongo["requirements"].find({"_name" => params[:req]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
+
+  content_type :json
+  @dates.map {|d| d.xmlschema(2)}.to_json
+end
+
 get '/r/:req/history' do
+  @req = Req.new(mongo, params[:req], :context => self)
+  not_found if !@req.exist?
+  
   @dates = mongo["requirements"].find({"_name" => params[:req]}, {:fields => "date", :sort => ["date", :desc]}).map {|req| req["date"]}
   @name = params[:req]
   
@@ -528,7 +491,7 @@ end
 get '/r/:req/:date' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @req = Req.new(mongo, params[:req], :date => @date, :context => self)
-  not_found if @req.nil?
+  not_found if !@req.exist?
   
   ReqHTML.new(@req, :context => self).to_html
 end
@@ -549,6 +512,7 @@ get '/r/:req/:date/diff' do
 end
 
 post '/r/:req/edit' do
+  @req = Req.new(mongo, params[:req], :context => self)
   req_data = @req.to_hash
   req_data.delete "_id"
   req_data["date"] = Time.now.utc
@@ -564,8 +528,4 @@ post '/r/:req/edit' do
   mongo["requirements"].save req_data
   
   redirect to('/r/' + params[:req])
-end
-
-get '/:doc/add' do
-  haml :doc_add
 end

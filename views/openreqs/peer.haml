@@ -1,0 +1,19 @@
+%h1
+  %a{:href => to("/a/peers")}= @peer.name
+%h2 Documents
+%ul
+  - @docs.each do |doc|
+    %li
+      %a{:href => to("/a/peers/#{@peer.name}/d/#{doc}")}= doc
+      (
+      %a{:href => to("/a/peers/#{@peer.name}/d/#{doc}/diff")} diff
+      )
+      
+      %form{:action => to("/a/peers/#{@peer.name}/d/#{doc}/pull"), :method => "post"}
+        %input.pull(type="submit" value="Pull")
+
+      %form{:action => to("/a/peers/#{@peer.name}/d/#{doc}/push"), :method => "post"}
+        %input.push(type="submit" value="Push")
+
+%form{:action => to("/a/peers/#{@peer.name}/sync"), :method => "post"}
+  %input#sync(type="submit" value="Sync")
