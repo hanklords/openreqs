@@ -140,7 +140,7 @@ describe "The index document", :type => :request do
   it "links to the creation form for inexistant documents" do
     visit "/"
     find_link(@unknown_doc).click
-    current_path.should == "/d/#@unknown_doc/add"
+    current_path.should == "/d/#@unknown_doc/edit"
   end
 end
 
@@ -232,7 +232,7 @@ describe "A document", :type => :request do
     it "links to the creation form for inexistant requirements" do
       visit "/d/#@doc_name"
       find_link(@unknown_req_name).click
-      current_path.should == "/r/#@unknown_req_name/add"
+      current_path.should == "/r/#@unknown_req_name/edit"
     end
     
     it "displays the referenced requirements" do

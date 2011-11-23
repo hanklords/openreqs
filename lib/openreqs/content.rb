@@ -60,7 +60,7 @@ class Doc
     doc.to_json
   end
   
-  def to_hash; @doc end
+  def to_hash; @doc || {} end
   def to_html
     DocHTML.new(content,
       :docs => docs,
@@ -127,7 +127,7 @@ class DocHTML < CreolaHTML
     elsif @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/r/#{uri}/add"), text || uri, namespace)
+      super(context.to("/r/#{uri}/edit"), text || uri, namespace)
     end
   end
 end
@@ -139,7 +139,7 @@ class DocIndexHTML < CreolaHTML
     if @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/d/#{uri}/add"), text || uri, namespace)
+      super(context.to("/d/#{uri}/edit"), text || uri, namespace)
     end
   end
 end
@@ -183,7 +183,7 @@ class Req
   def date; self["date"] end
   def content; self["_content"] || '' end
   def name; self["_name"] end
-  def to_hash; @req end
+  def to_hash; @req || {} end
   def to_txt
     str = "==== #{name} ====\n\n"
     str << content << "\n\n"

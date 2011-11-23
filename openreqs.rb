@@ -276,22 +276,8 @@ post '/d/:doc/delete' do
   redirect to('/d')
 end
 
-get '/d/:doc/add' do
-  @name = params[:doc]
-  
-  haml :doc_add
-end
-
-post '/d/:doc/add' do
-  doc = {"_name" => params[:doc], "_content" => params[:content]}
-  mongo["docs"].insert doc
-  
-  redirect to('/d/' + URI.escape(params[:doc]))
-end
-
 get '/d/:doc/edit' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
-  not_found if !@doc.exist?
   @name = @doc.name
   @content = @doc.content
   
@@ -303,6 +289,7 @@ post '/d/:doc/edit' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   doc_data = @doc.to_hash
   doc_data.delete "_id"
+  doc_data["_name"] = params[:doc]
   doc_data["date"] = Time.now.utc
   doc_data["_content"] = params[:content]
   mongo["docs"].save doc_data
@@ -389,17 +376,6 @@ get '/r.json' do
   mongo["requirements"].find({}, {:fields => "_name"}).map {|d| d["_name"]}.uniq.to_json
 end
 
-get '/r/:req/add' do
-  haml :doc_req_add
-end
-
-post '/r/:req/add' do
-  req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.utc}
-  mongo["requirements"].insert req
-  
-  redirect to('/r/' + URI.escape(params[:req]))
-end
-
 get '/r/:req.json' do
   if params[:with_history] == "1"
     after = Time.xmlschema(params[:after]) rescue nil
@@ -443,7 +419,6 @@ end
 
 get '/r/:req/edit' do
   @req = Req.new(mongo, params[:req], :context => self)
-  not_found if !@req.exist?
 
   cache_control :no_cache
   haml :doc_req_edit
@@ -514,6 +489,7 @@ post '/r/:req/edit' do
   @req = Req.new(mongo, params[:req], :context => self)
   req_data = @req.to_hash
   req_data.delete "_id"
+  req_data["_name"] = params[:req]
   req_data["date"] = Time.now.utc
   req_data["_content"] = params[:content]
   if !params[:key].empty?
