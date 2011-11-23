@@ -286,7 +286,7 @@ post '/d/:doc/add' do
   doc = {"_name" => params[:doc], "_content" => params[:content]}
   mongo["docs"].insert doc
   
-  redirect to('/d/' + params[:doc])
+  redirect to('/d/' + URI.escape(params[:doc]))
 end
 
 get '/d/:doc/edit' do
@@ -307,7 +307,7 @@ post '/d/:doc/edit' do
   doc_data["_content"] = params[:content]
   mongo["docs"].save doc_data
 
-  redirect to('/d/' + params[:doc])
+  redirect to('/d/' + URI.escape(params[:doc]))
 end
 
 get '/d/:doc/history.json' do
@@ -397,7 +397,7 @@ post '/r/:req/add' do
   req = {"_name" => params[:req], "_content" => params[:content], "date" => Time.now.utc}
   mongo["requirements"].insert req
   
-  redirect to('/r/' + params[:req])
+  redirect to('/r/' + URI.escape(params[:req]))
 end
 
 get '/r/:req.json' do
@@ -526,5 +526,5 @@ post '/r/:req/edit' do
   
   mongo["requirements"].save req_data
   
-  redirect to('/r/' + params[:req])
+  redirect to('/r/' + URI.escape(params[:req]))
 end
