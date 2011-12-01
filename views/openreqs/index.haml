@@ -9,5 +9,7 @@
         %a#edit{:href => to("/d/#@name/edit")} Edit the document
         |
       %a#history{:href => to("/d/#@name/history")} History
+      |
+      %a#download-or{:href => to("/d/#@name.or.gz")} Download
 
     = @doc.to_html
