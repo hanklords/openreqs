@@ -192,6 +192,44 @@ post '/a/clone' do
   ""
 end
 
+get '/a/import' do
+    haml %q{
+%div
+  Choose a file to import
+  %form(method="post" enctype="multipart/form-data")
+    %input(type="file" name="import")
+    %br
+    %input#import(type="submit" value="Import")
+}  
+end
+
+post '/a/import' do
+  import_doc = params[:import]
+  not_found if import_doc.nil?
+  
+
+  begin
+    gz = Zlib::GzipReader.new(import_doc[:tempfile])
+    import_json = JSON.load(gz.read)
+    gz.close
+    
+    import_peer = import_json["peers"].first
+    if not Peer.new(mongo, :name => import_peer["_name"]).exist?
+      mongo["peers"].insert import_peer
+    end
+    
+    import_json["docs"].each { |doc| doc["date"] = Time.parse(doc["date"]) }
+    import_json["reqs"].flatten.each { |req| req["date"] = Time.parse(req["date"]) }
+    
+    mongo["docs.#{import_peer["_name"]}"].insert import_json["docs"]
+    mongo["requirements.#{import_peer["_name"]}"].insert import_json["reqs"].flatten
+    
+    redirect to("/a/peers/#{import_peer["_name"]}")
+  rescue Zlib::GzipFile::Error , JSON::ParserError
+    "Bad file"
+  end
+end
+
 get '' do
   redirect to('/')
 end
@@ -255,11 +293,13 @@ get '/d/:doc.or.gz' do
       ReqVersions.new(mongo, :name => req_name, :context => self)
     }
   }.flatten.uniq
+  self_peer = SelfPeer.new(mongo, :host => request.host)
+
   
   content_type 'application/x-openreqs'
   or_gz = Zlib::GzipWriter.new(StringIO.new)
   or_gz.orig_name = params[:doc] + ".json"
-  or_gz << {"docs" => @doc, "reqs" => @reqs}.to_json
+  or_gz << {"peers" => [self_peer], "docs" => @doc, "reqs" => @reqs}.to_json
   or_gz.finish.string
 end
 
