@@ -6,6 +6,8 @@ require 'haml'
 require 'mongo'
 require 'time'
 require 'qu-mongo'
+require 'stringio'
+require 'zlib'
 require 'openreqs/jobs'
 require 'openreqs/peers'
 require 'openreqs/content'
@@ -242,6 +244,23 @@ get '/d/:doc.json' do
   
   content_type :json
   @doc.to_json
+end
+
+get '/d/:doc.or.gz' do
+  @doc = DocVersions.new(mongo, :name => params[:doc])
+  not_found if !@doc.exist?
+  
+  @reqs = @doc.map{|doc_version|
+    doc_version.requirement_list.map {|req_name|
+      ReqVersions.new(mongo, :name => req_name, :context => self)
+    }
+  }.flatten.uniq
+  
+  content_type 'application/x-openreqs'
+  or_gz = Zlib::GzipWriter.new(StringIO.new)
+  or_gz.orig_name = params[:doc] + ".json"
+  or_gz << {"docs" => @doc, "reqs" => @reqs}.to_json
+  or_gz.finish.string
 end
 
 get '/d/:doc' do
