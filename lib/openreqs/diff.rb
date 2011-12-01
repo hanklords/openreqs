@@ -81,9 +81,9 @@ end
 class ReqDiff
   TEMPLATE = 'req_inline.haml'
   def initialize(req_old, req_new, options = {})
-    @req_old, @req_new, @options = req_old, req_new, options
+    @req_old, @req_new, @options = req_old || EmptyReq.new, req_new || EmptyReq.new, options
     @context = @options[:context]
-    @content = ContentDiff.new(req_old.content, req_new.content)
+    @content = ContentDiff.new(@req_old.content, @req_new.content)
   end
 
   def attributes

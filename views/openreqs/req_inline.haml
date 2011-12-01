@@ -8,7 +8,8 @@
       %a{:href => to("/r/#{@reqp.name}/edit")}= @reqp.name
   = @reqp.content.to_html
   %ul
-    %li date: #{@reqp.date.strftime('%Y-%m-%d')}
+    - if @reqp.date
+      %li date: #{@reqp.date.strftime('%Y-%m-%d')}
     - if rationale = @reqp.attributes["rationale"]
       %li rationale: #{rationale.to_html}
     - if satisfies = @reqp.attributes["satisfies"]
