@@ -17,7 +17,7 @@ class Peer
   def name; self["_name"] end
   def local_url; self["local_url"] end
     
-  def to_json
+  def to_json(*args)
     peer = @peer.clone
     peer.delete("_id")
     peer.delete("private_key")
