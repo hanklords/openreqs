@@ -80,7 +80,7 @@ class Sync
     docs.each {|doc_name|
       self_date = self_versions[doc_name]
       doc_url = remote["local_url"] + "/d/#{uri_escape(doc_name)}.json?with_history=1"
-      doc_url << "&after=#{self_date.xmlschema(2)}" if self_date
+#      doc_url << "&after=#{self_date.xmlschema(2)}" if self_date
       doc_json = Net::HTTP.get(URI.parse(doc_url))
       doc = JSON.load(doc_json)
       doc.each {|v| v["date"] = Time.parse(v["date"])}
