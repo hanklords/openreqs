@@ -317,7 +317,7 @@ get '/d/:doc/files/:file' do
   
   @fs = Mongo::GridFileSystem.new(mongo)
   begin
-    file = @fs.open(params[:file], "r")
+    file = @fs.open("/d/" + params[:doc] + "/" + params[:file], "r")
     content_type file.content_type
     file
   rescue Mongo::GridFileNotFound
@@ -347,7 +347,7 @@ post '/d/:doc/files/' do
   not_found if upload_file.nil?
 
   @fs = Mongo::GridFileSystem.new(mongo)
-  file = @fs.open(upload_file[:filename], "w") do |f|
+  file = @fs.open("/d/" + params[:doc] + "/" + upload_file[:filename], "w") do |f|
     f.write upload_file[:tempfile].read
   end
   
