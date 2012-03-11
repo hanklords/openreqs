@@ -6,7 +6,7 @@ require 'haml'
 require 'mongo'
 require 'time'
 require 'qu-mongo'
-#require 'qu-immediate'
+require 'qu-immediate'
 require 'stringio'
 require 'zlib'
 require 'openreqs/jobs'
@@ -271,6 +271,14 @@ get '/d/:doc.txt' do
 
   content_type :txt
   @doc.to_txt
+end
+
+get '/d/:doc.reqif' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+
+  content_type :txt
+  @doc.to_reqif
 end
 
 get '/d/:doc.json' do

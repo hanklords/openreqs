@@ -69,6 +69,9 @@ class Doc
     ).to_html 
   end
   def to_txt; DocParserTxt.new(content, :name => name, :requirements => requirements).to_txt end
+  def to_reqif
+    DocParserReqIf.new(content, :name => name, :requirements => requirements).to_txt
+  end
 end
 
 class DocVersions
@@ -144,6 +147,74 @@ class DocIndexHTML < CreolaHTML
   end
 end
 
+class DocParserReqIf < CreolaTxt
+  attr_accessor :coreContent, :reqifHeader, :requirementsSection, :specificationSection, :reqIfOutput, :firstHeading, :previousLevel
+  def initialize(content, options)
+    @reqifHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<REQ-IF xmlns=\"http://www.omg.org/spec/ReqIF/20110401/reqif.xsd\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"http://www.omg.org/spec/ReqIF/20110401/reqif.xsd http://www.omg.org/spec/ReqIF/20110401/reqif.xsd\"\n  xml:lang=\"en\">\n"
+    @reqifHeader << "<THE-HEADER>\n"
+    @reqifHeader << "<REQ-IF-HEADER IDENTIFIER=\"#{options[:name]}\">\n"
+    @reqifHeader << "<COMMENT>No comments</COMMENT>\n"
+    @reqifHeader << "<CREATION-TIME>" + Time.now.utc.to_s + "</CREATION-TIME>\n"
+    @reqifHeader << "<REPOSITORY-ID>Req-if file repository</REPOSITORY-ID>\n"
+    @reqifHeader << "<REQ-IF-TOOL-ID>OpenReqs ReqIf exporter</REQ-IF-TOOL-ID>\n"
+    @reqifHeader << "<REQ-IF-VERSION>1.0</REQ-IF-VERSION>\n"
+    @reqifHeader << "<SOURCE-TOOL-ID>Openreqs</SOURCE-TOOL-ID>\n"
+    @reqifHeader << "<TITLE>#{options[:name]}</TITLE>\n"
+    @reqifHeader << "</REQ-IF-HEADER>\n"
+    @reqifHeader << "</THE-HEADER>\n"
+    @coreContent = "<CORE-CONTENT>\n"
+    @coreContent << "<REQ-IF-CONTENT>\n"
+    @requirementsSection = "<SPEC-OBJECTS>\n"
+    @specificationSection = ""
+    @reqIfOutput = ""
+    @firstHeading = true
+    @previousLevel = 0
+    super(content, options)
+  end
+  def line_break; end
+  def heading(level, text)
+    if @firstHeading
+      @specificationSection << "<SPECIFICATIONS>\n"
+      @specificationSection << "<SPECIFICATION IDENTIFIER=\"#{@options[:name]}\">\n"
+      @firstHeading = false
+    else
+      @specificationSection << "</SPEC-HIERARCHY>\n"
+    end
+    if (level > @previousLevel)
+      @specificationSection << "<CHILDREN>\n" * (level-@previousLevel)
+      @specificationSection << "<SPEC-HIERARCHY DESC=\"#{text}\">\n"
+    elsif (level < @previousLevel)
+      @specificationSection << "</CHILDREN>\n" * (@previousLevel-level)
+      @specificationSection << "<SPEC-HIERARCHY DESC=\"#{text}\">\n"
+    else
+      @specificationSection << "<SPEC-HIERARCHY DESC=\"#{text}\">\n"
+    end
+    @previousLevel = level
+  end
+  def link(uri, text, namespace)
+    if req = @options[:requirements][uri]
+      @requirementsSection << req.to_reqif
+      @specificationSection << "<OBJECT>\n"
+      @specificationSection << "<SPEC-OBJECT-REF>\"#{req.name}\"</SPEC-OBJECT-REF>\n"
+      @specificationSection << "</OBJECT>\n"
+    end
+  end
+  def root(content)
+    @requirementsSection << "</SPEC-OBJECTS>\n"
+    @specificationSection << "</SPEC-HIERARCHY>\n"
+    @specificationSection << "</CHILDREN>\n" * (@previousLevel-0)
+    @specificationSection << "</SPECIFICATION>\n"
+    @specificationSection << "</SPECIFICATIONS>\n"
+    @coreContent << @requirementsSection 
+    @coreContent << @specificationSection
+    @coreContent << "</REQ-IF-CONTENT>\n"
+    @coreContent << "</CORE-CONTENT>\n"
+    @reqIfOutput = @reqifHeader + @coreContent + "</REQ-IF>"
+    @reqIfOutput
+  end
+  def to_txt; super end
+end
+
 class DocParserTxt < CreolaTxt
   def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
@@ -199,6 +270,30 @@ class Req
     req.delete("_id")
     req["date"] = req["date"].xmlschema(2)
     req.to_json
+  end
+
+  def to_reqif
+    str = "<SPEC-OBJECT IDENTIFIER=\"#{name}\">\n"
+    str << "<VALUES>\n"
+    str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{name}\">\n"
+    str << "<DEFINITION>\n"
+    str << "<ATTRIBUTE-DEFINITION-STRING-REF>\"ID\"</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+    str << "</DEFINITION>\n"
+    str << "</ATTRIBUTE-VALUE-STRING>\n"
+    str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{content}\">\n"
+    str << "<DEFINITION>\n"
+    str << "<ATTRIBUTE-DEFINITION-STRING-REF>\"Description\"</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+    str << "</DEFINITION>\n"
+    str << "</ATTRIBUTE-VALUE-STRING>\n"
+    attributes.each {|k, v|
+      str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{v}\">\n"
+      str << "<DEFINITION>\n"
+      str << "<ATTRIBUTE-DEFINITION-STRING-REF>#{k}</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+      str << "</DEFINITION>\n"
+      str << "</ATTRIBUTE-VALUE-STRING>\n"
+    }
+    str << "</VALUES>\n"
+    str << "</SPEC-OBJECT>\n"
   end
 end
 
