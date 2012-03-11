@@ -207,7 +207,6 @@ end
 post '/a/import' do
   import_doc = params[:import]
   not_found if import_doc.nil?
-  
 
   begin
     gz = Zlib::GzipReader.new(import_doc[:tempfile])
@@ -319,6 +318,49 @@ get '/d/:doc' do
   @name = @doc.name
   
   haml :doc
+end
+
+get '/d/:doc/files/:file' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  @fs = Mongo::GridFileSystem.new(mongo)
+  begin
+    file = @fs.open("/d/" + params[:doc] + "/" + params[:file], "r")
+    content_type file.content_type
+    file
+  rescue Mongo::GridFileNotFound
+    not_found
+  end
+end
+
+get '/d/:doc/files/' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  haml %q{
+%div
+  Choose a file to attach
+  %form(method="post" enctype="multipart/form-data")
+    %input(type="file" name="file")
+    %br
+    %input#upload(type="submit" value="Upload")
+}  
+end
+
+post '/d/:doc/files/' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  upload_file = params[:file]
+  not_found if upload_file.nil?
+
+  @fs = Mongo::GridFileSystem.new(mongo)
+  file = @fs.open("/d/" + params[:doc] + "/" + upload_file[:filename], "w") do |f|
+    f.write upload_file[:tempfile].read
+  end
+  
+  redirect to('/d/' + URI.escape(params[:doc]))
 end
 
 get '/d/:doc/requirements.json' do
