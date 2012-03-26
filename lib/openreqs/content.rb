@@ -154,7 +154,7 @@ class DocParserReqIf < CreolaTxt
     @reqifHeader << "<THE-HEADER>\n"
     @reqifHeader << "<REQ-IF-HEADER IDENTIFIER=\"#{options[:name]}\">\n"
     @reqifHeader << "<COMMENT>No comments</COMMENT>\n"
-    @reqifHeader << "<CREATION-TIME>" + Time.now.utc.to_s + "</CREATION-TIME>\n"
+    @reqifHeader << "<CREATION-TIME>" + Time.now.strftime("%Y-%m-%dT%H:%M:%S") + "</CREATION-TIME>\n"
     @reqifHeader << "<REPOSITORY-ID>Req-if file repository</REPOSITORY-ID>\n"
     @reqifHeader << "<REQ-IF-TOOL-ID>OpenReqs ReqIf exporter</REQ-IF-TOOL-ID>\n"
     @reqifHeader << "<REQ-IF-VERSION>1.0</REQ-IF-VERSION>\n"
@@ -195,7 +195,7 @@ class DocParserReqIf < CreolaTxt
     if req = @options[:requirements][uri]
       @requirementsSection << req.to_reqif
       @specificationSection << "<OBJECT>\n"
-      @specificationSection << "<SPEC-OBJECT-REF>\"#{req.name}\"</SPEC-OBJECT-REF>\n"
+      @specificationSection << "<SPEC-OBJECT-REF>#{req.name}</SPEC-OBJECT-REF>\n"
       @specificationSection << "</OBJECT>\n"
     end
   end
@@ -273,16 +273,16 @@ class Req
   end
 
   def to_reqif
-    str = "<SPEC-OBJECT IDENTIFIER=\"#{name}\">\n"
+    str = "<SPEC-OBJECT IDENTIFIER=\"#{name}\" LAST-CHANGE=\"#{date.strftime("%Y-%m-%dT%H:%M:%S")}\">\n"
     str << "<VALUES>\n"
     str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{name}\">\n"
     str << "<DEFINITION>\n"
-    str << "<ATTRIBUTE-DEFINITION-STRING-REF>\"ID\"</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+    str << "<ATTRIBUTE-DEFINITION-STRING-REF>ID</ATTRIBUTE-DEFINITION-STRING-REF>\n"
     str << "</DEFINITION>\n"
     str << "</ATTRIBUTE-VALUE-STRING>\n"
     str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{content}\">\n"
     str << "<DEFINITION>\n"
-    str << "<ATTRIBUTE-DEFINITION-STRING-REF>\"Description\"</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+    str << "<ATTRIBUTE-DEFINITION-STRING-REF>Description</ATTRIBUTE-DEFINITION-STRING-REF>\n"
     str << "</DEFINITION>\n"
     str << "</ATTRIBUTE-VALUE-STRING>\n"
     attributes.each {|k, v|

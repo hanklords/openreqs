@@ -603,6 +603,16 @@ post '/r/:req/edit' do
   req_data["_name"] = params[:req]
   req_data["date"] = Time.now.utc
   req_data["_content"] = params[:content]
+  @req.attributes.each {|k,v|
+  	puts k
+  	puts "v#{k}"
+  	if !params[k].empty?
+    		if !params["v#{k}"].empty?
+      			req_data[params[k]] = params["v#{k}"]
+    		else
+      			req_data.delete params[k]
+   		end
+  	end}
   if !params[:key].empty?
     if !params[:value].empty?
       req_data[params[:key]] = params[:value]

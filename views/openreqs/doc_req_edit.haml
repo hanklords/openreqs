@@ -4,7 +4,10 @@
       %h2 Attributes
       %ul
         - @req.attributes.each do |k,v| 
-          %li #{k}: #{v}
+          %li 
+            %textarea(name="#{k}" cols=15 rows=1)= k
+            \: 
+            %textarea(name="v#{k}" cols=80 rows=3)= v
         %li
           %input(name="key")
           \:
