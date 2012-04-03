@@ -424,6 +424,27 @@ get '/d/:doc/history.json' do
   @dates.map {|d| d.xmlschema(2)}.to_json
 end
 
+get '/d/:doc/history.rss' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+
+  @name = params[:doc]
+  @dates = mongo["docs"].find({"_name" => params[:doc]}, {:fields => "date", :sort => ["date", :asc]}).map {|doc| doc["date"]}
+  req_names = CreolaExtractURL.new(@doc["_content"]).to_a
+  @dates.concat mongo["requirements"].find({
+    "_name" => {"$in" => req_names},
+    "date"=> {"$gt" => @dates[0]}
+   }, {:fields => "date"}).map {|req| req["date"]}
+  
+  @dates = @dates.sort.reverse
+  @date = @dates[0]
+  @docs = @dates.map {|date| Doc.new(mongo, params[:doc], :date => date, :context => self)}
+  @doc_diffs = @docs.each_cons(2).map {|doc_a, doc_b| DocDiff.new(doc_b, doc_a, :context => self) }
+  
+  content_type :rss
+  haml :doc_history_rss
+end
+
 get '/d/:doc/history' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?

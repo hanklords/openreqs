@@ -51,6 +51,7 @@ class ContentDiff < CreolaHTML
 end
 
 class DocDiff < ContentDiff
+  attr_reader :doc_old, :doc_new
   def initialize(doc_old, doc_new, options = {})
     @doc_old, @doc_new = doc_old, doc_new
     super(@doc_old.content, @doc_new.content, options)
