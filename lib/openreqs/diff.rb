@@ -1,6 +1,8 @@
+require 'forwardable'
 require 'diff/lcs'
 require 'creola/html'
 require 'creola/txt'
+
 
 class CreolaList < CreolaTxt
   def root(content); content.flatten end
@@ -8,12 +10,23 @@ class CreolaList < CreolaTxt
   undef_method :to_txt
 end
 
-class ContentDiff < CreolaHTML
-  def initialize(old_creole, new_creole, options = {})
+class CreolaDiff < Creola
+  extend Forwardable
+  attr_reader :discard_state
+  
+  def initialize(old_creole, new_creole, slave_parser)
     @old_content = CreolaList.new(old_creole).to_a
     @new_content = CreolaList.new(new_creole).to_a
-    super(nil, options)
+    @slave_parser = slave_parser
+    
+    slave_parser.diff_parser = self
+    super(nil, nil)
   end
+  
+  def_delegators :@slave_parser, :root, :line_break, :heading, :paragraph,
+      :nowiki, :nowiki_inline, :bold, :italic,
+      :unnumbered, :numbered, :unnumbered_item, :numbered_item,
+      :link, :table, :row, :cell, :header_cell, :image, :horizontal_rule, :words
   
   def match(event)
     @discard_state = nil
@@ -29,18 +42,7 @@ class ContentDiff < CreolaHTML
     @discard_state = :add
     @state = tokenize_string(event.new_element, @state)
   end
-  
-  def words(*words);
-    case @discard_state
-    when :remove
-      %{<span class="remove">} + words.join + "</span>"
-    when :add
-      %{<span class="add">} + words.join + "</span>"
-    else
-      words.join
-    end
-  end;
-  
+
   private
   def tokenize
     @state = State::Root.new(self)
@@ -50,11 +52,27 @@ class ContentDiff < CreolaHTML
   end
 end
 
-class DocDiff < ContentDiff
+class ContentDiffHTML < CreolaHTML
+  attr_accessor :diff_parser
+  
+  def words(*words);
+    case diff_parser.discard_state
+    when :remove
+      %{<span class="remove">} + words.join + "</span>"
+    when :add
+      %{<span class="add">} + words.join + "</span>"
+    else
+      words.join
+    end
+  end
+end
+
+class DocDiff < CreolaDiff
   attr_reader :doc_old, :doc_new
   def initialize(doc_old, doc_new, options = {})
-    @doc_old, @doc_new = doc_old, doc_new
-    super(@doc_old.content, @doc_new.content, options)
+    options[:slave_parser] ||= ContentDiffHTML.new
+    super(doc_old.content, doc_new.content, options[:slave_parser])
+    @doc_old, @doc_new, @options = doc_old, doc_new, options
   end
   
   def heading(level, text); super(level + 1, text) end
@@ -84,7 +102,7 @@ class ReqDiff
   def initialize(req_old, req_new, options = {})
     @req_old, @req_new, @options = req_old || EmptyReq.new, req_new || EmptyReq.new, options
     @context = @options[:context]
-    @content = ContentDiff.new(@req_old.content, @req_new.content)
+    @content = CreolaDiff.new(@req_old.content, @req_new.content, options[:slave_parser])
   end
 
   def attributes

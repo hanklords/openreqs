@@ -6,7 +6,7 @@
         (on #{@date.strftime('%F %T')})
     - else
       %a{:href => to("/r/#{@reqp.name}/edit")}= @reqp.name
-  = @reqp.content.to_html
+  = @reqp.content.render
   %ul
     - if @reqp.date
       %li date: #{@reqp.date.strftime('%Y-%m-%d')}
