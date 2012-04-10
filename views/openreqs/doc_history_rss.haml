@@ -14,4 +14,4 @@
                 %guid= to("/d/#@name/history##{date.iso8601}")
                 %link= to("/d/#@name/#{date.iso8601}")
                 %title= date.strftime("%F %T")
-                %description&= diff.to_html
+                %description&= diff.render
