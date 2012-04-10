@@ -439,7 +439,7 @@ get '/d/:doc/history.rss' do
   @dates = @dates.sort.reverse
   @date = @dates[0]
   @docs = @dates.map {|date| Doc.new(mongo, params[:doc], :date => date, :context => self)}
-  @doc_diffs = @docs.each_cons(2).map {|doc_a, doc_b| DocDiff.new(doc_b, doc_a, :context => self) }
+  @doc_diffs = @docs.each_cons(2).map {|doc_a, doc_b| DocDiff.new(doc_b, doc_a, :context => self, :slave_parser => ContentDiffHTMLNoClass.new) }
   
   content_type :rss
   haml :doc_history_rss

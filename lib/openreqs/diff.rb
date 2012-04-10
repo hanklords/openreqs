@@ -67,6 +67,21 @@ class ContentDiffHTML < CreolaHTML
   end
 end
 
+class ContentDiffHTMLNoClass < CreolaHTML
+  attr_accessor :diff_parser
+  
+  def words(*words);
+    case diff_parser.discard_state
+    when :remove
+      %{<span style="background-color: #fdd; text-decoration: line-through;">} + words.join + "</span>"
+    when :add
+      %{<span style="background-color: #dfd;">} + words.join + "</span>"
+    else
+      words.join
+    end
+  end
+end
+
 class DocDiff < CreolaDiff
   attr_reader :doc_old, :doc_new
   def initialize(doc_old, doc_new, options = {})
