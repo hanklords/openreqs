@@ -242,7 +242,6 @@ get '/' do
   @doc = DocIndex.new(mongo, :context => self)
   @name = @doc.name
   
-  p mongo["docs"].find.to_a
   haml :index
 end
 
