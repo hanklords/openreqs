@@ -407,6 +407,33 @@ post '/d/:doc/edit' do
   redirect to('/d/' + URI.escape(params[:doc]))
 end
 
+get '/d/:doc/requirements.:link' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  if params[:with_history] == "1"
+    after = Time.xmlschema(params[:after]) rescue nil
+    @reqs = @doc.requirement_list.map {|req_name|
+      ReqVersions.new(mongo, :name => req_name, :after => after, :context => self)
+    }
+  else
+    @reqs = @doc.requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
+  end
+
+  @reqs_traceability = Hash.new
+  @reqs.each {|req|
+    attribute=params[:link]
+    @linked_reqs=nil
+    @linked_requirement_list=nil
+    unless req[attribute].nil?
+      @linked_requirement_list ||= CreolaExtractURL.new(req[attribute]).to_a
+      @linked_reqs = @linked_requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
+    end
+    @reqs_traceability[req] = @linked_reqs
+  }
+
+haml :req_link
+end
+
 get '/d/:doc/history.json' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?

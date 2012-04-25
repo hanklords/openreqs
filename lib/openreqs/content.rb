@@ -59,6 +59,14 @@ class Doc
     doc["_reqs"] = requirements.values
     doc.to_json
   end
+
+  def to_link(*args)
+    doc = @doc.clone
+    doc.delete("_id")
+    doc["date"] = doc["date"].xmlschema(2)
+    doc["_reqs"] = requirements.values
+    doc.to_link
+  end
   
   def to_hash; @doc || {} end
   def to_html
@@ -102,6 +110,14 @@ class DocVersions
       doc["date"] = doc["date"].xmlschema(2)
       doc
     }.to_json
+  end
+
+  def to_link(*args)
+    @docs.map {|doc|
+      doc.delete("_id")
+      doc["date"] = doc["date"].xmlschema(2)
+      doc
+    }.to_link
   end
 end
       
@@ -295,6 +311,26 @@ class Req
     str << "</VALUES>\n"
     str << "</SPEC-OBJECT>\n"
   end
+
+  def to_link(linkName)
+    if exist? then
+      str = "#{name} "
+      str << content
+      puts "Looking for #{linkName}\n"
+      unless @req[linkName].nil?
+        @requirement_list ||= CreolaExtractURL.new(@req[linkName]).to_a
+        @reqs = @requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
+        @reqs.each {|req|
+          puts req
+          req.to_txt
+        }
+      end
+      str << "\n"
+      # puts str
+    else
+    end
+  end
+
 end
 
 class ReqVersions
@@ -327,6 +363,15 @@ class ReqVersions
       doc
     }.to_json
   end
+
+  def to_link(*args)
+    @reqs.map {|doc|
+      doc.delete("_id")
+      doc["date"] = doc["date"].xmlschema(2)
+      doc
+    }.to_link
+  end
+
 end
 
 class EmptyReq < Req
