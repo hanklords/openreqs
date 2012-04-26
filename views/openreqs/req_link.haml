@@ -1,0 +1,24 @@
+%html
+  %head
+    %title #{@doc} - Traceability
+  %body
+    %ul
+      - @reqs_traceability.each do |req, linked_reqs|
+        %p
+        %a= "\""
+        %a= req.name
+        %a= "\", \""
+        %a= req.content
+        %a= "\", "
+        - unless linked_reqs.nil?
+          %a= "\""
+          - linked_reqs.each do |linked_req|
+            %a= linked_req.name
+            %a= "\n"
+          %a= "\""
+        - unless linked_reqs.nil?
+          %a= ",\""
+          - linked_reqs.each do |linked_req|
+            %a= linked_req.content
+            %a= "\n"
+          %a= "\""
