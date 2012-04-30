@@ -3,22 +3,25 @@
     %title #{@doc} - Traceability
   %body
     %ul
-      - @reqs_traceability.each do |req, linked_reqs|
-        %p
-        %a= "\""
-        %a= req.name
-        %a= "\", \""
-        %a= req.content
-        %a= "\", "
-        - unless linked_reqs.nil?
-          %a= "\""
-          - linked_reqs.each do |linked_req|
-            %a= linked_req.name
-            %a= "\n"
-          %a= "\""
-        - unless linked_reqs.nil?
-          %a= ",\""
-          - linked_reqs.each do |linked_req|
-            %a= linked_req.content
-            %a= "\n"
-          %a= "\""
+      %table{:border => "1"}
+        - @reqs_traceability.each do |req, linked_reqs|
+          - first = true
+          - if linked_reqs.nil?
+            %tr
+              %td=req.name
+              %td=req.content
+              %td
+              %td
+          - else
+            - linked_reqs.each do |linked_req|
+              - if first
+                %tr
+                  %td{:rowspan => linked_reqs.length}=req.name
+                  %td{:rowspan => linked_reqs.length}=req.content
+                  %td=linked_req.name
+                  %td=linked_req.content
+                  - first = false
+              - else
+                %tr
+                  %td=linked_req.name
+                  %td=linked_req.content
