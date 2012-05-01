@@ -4,7 +4,8 @@
   %body
     %ul
       %table{:border => "1"}
-        - @reqs_traceability.each do |req, linked_reqs|
+        - @reqs.each do |req|
+          - linked_reqs = @reqs_traceability[req]
           - first = true
           - if linked_reqs.nil?
             %tr
