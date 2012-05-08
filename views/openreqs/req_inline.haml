@@ -1,23 +1,45 @@
-.req
-  %strong
-    - if @date
-      = @reqp.name
-      - if @req
-        (on #{@date.strftime('%F %T')})
-    - else
-      %a{:href => to("/r/#{@reqp.name}/edit")}= @reqp.name
-  = @reqp.content.render
-  %ul
-    - if @reqp.date
-      %li date: #{@reqp.date.strftime('%Y-%m-%d')}
-    - if rationale = @reqp.attributes["rationale"]
-      %li rationale: #{rationale.to_html}
-    - if satisfies = @reqp.attributes["satisfies"]
-      %li 
-        satisfies:
-        = satisfies.to_html
-    - if @origin
-      %li
-        origin:
-        - @origin.each do |doc|
-          %a{:href => to("/d/#{doc}")}= doc
+.req{:id => @reqp.name}
+  .content
+    .id
+      - if @date
+        = @reqp.name
+        - if @req
+          (on #{@date.strftime('%F %T')})
+      - else
+        =@reqp.name
+        (
+        %a{:href => to("/r/#{@reqp.name}/edit")} edit
+        )
+    = @reqp.content.render
+    %ul
+      - if @reqp.date
+        %li date: #{@reqp.date.strftime('%Y-%m-%d')}
+      - if rationale = @reqp.attributes["rationale"]
+        %li rationale: #{rationale.to_html}
+      - if satisfies = @reqp.attributes["satisfies"]
+        %li 
+          satisfies:
+          = satisfies.to_html
+      - if @origin
+        %li
+          origin:
+          - @origin.each do |doc|
+            %a{:href => to("/d/#{doc}")}= doc
+  .edit
+    %form{:method => "post", :action => to("/r/#{@reqp.name}/edit")}
+      %h2 Attributes
+      %ul
+        - @reqp.attributes.each do |k,v| 
+          %li 
+            %textarea(name="#{k}" cols=15 rows=1)= k
+            \: 
+            %textarea(name="v#{k}" cols=80 rows=3)= v
+        %li
+          %input(name="key")
+          \:
+          %input(name="value")
+      %h2 Text
+      %textarea(name="content" cols=80 rows=40)= @reqp.content
+      %p
+      %input#save(type="submit" value="Sauver")
+
