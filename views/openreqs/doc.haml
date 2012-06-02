@@ -2,11 +2,32 @@
   %head
     %title= @name
     %script{:type => "text/javascript", :src => to("/jquery.js")}
+    :javascript
+      $(function () {
+        $(".req .id a").click(function(e) {
+            e.preventDefault();
+            $(".edit, .content", $(this).parents(".req")).toggle('fast');
+        });
+
+        $(".req .edit form").submit(function(e) {
+          e.preventDefault();
+          var req = $(this).parents(".req");
+          var action = $(this).attr("action");
+          $(".edit #save", req).attr("disabled", "disabled");
+
+          $.post(action, $(this).serialize(), function(data) {
+            $(".content", req).replaceWith($(data).find(".content"));
+            $(".edit", req).hide('fast');
+            $(".edit #save", req).removeAttr("disabled");
+          });
+        });
+      });
+
     :css
       img {max-width: 80%}
       .req ul li p {display: inline}
       .req .id {font-weight: bold}
-      .req .edit {display: none}
+      .req .edit, .req .origin {display: none}
   %body
     %div
       %a#summary{:href => to("/")} Return to Summary
