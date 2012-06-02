@@ -28,19 +28,22 @@
             %a{:href => to("/d/#{doc}")}= doc
   .edit
     %form{:method => "post", :action => to("/r/#{@reqp.name}/edit")}
+      %h2 Text
+      %textarea(name="content" cols=80 rows=5)= @reqp.content.text
+
       %h2 Attributes
       %ul
+        - if @reqp.date
+          %li date: #{Time.now.strftime('%Y-%m-%d')}
         - @reqp.attributes.each do |k,v| 
           %li 
             %textarea(name="#{k}" cols=15 rows=1)= k
             \: 
-            %textarea(name="v#{k}" cols=80 rows=3)= v.text
+            %textarea(name="v#{k}" cols=40 rows=1)= v.text
         %li
           %input(name="key")
           \:
           %input(name="value")
-      %h2 Text
-      %textarea(name="content" cols=80 rows=20)= @reqp.content.text
-      %p
+
       %input#save(type="submit" value="Sauver")
 
