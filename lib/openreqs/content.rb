@@ -267,6 +267,7 @@ class Req
   
   def exist?; !@req.nil? end
   def [](attr); exist? ? @req[attr] : nil end
+  def []=(attr, value); @req[attr] = value end
   def date; self["date"] end
   def content; self["_content"] || '' end
   def name; self["_name"] end

@@ -1,28 +1,31 @@
 %html
   %head
-    %title #{@doc} - Traceability
+    %title #{@doc.name} - Traceability
   %body
-    %ul
-      %table{:border => "1"}
-        - @reqs.each do |req|
-          - linked_reqs = @reqs_traceability[req]
+    %h1 #{@doc.name} - Traceability for #{@attribute}
+    %table{:border => "1"}
+      %tr
+        %th Name
+        %th Content
+        %th Linked name
+        %th Linked content
+
+      - @reqs.each do |req|
+        - linked_reqs = req[@attribute]
+        - if linked_reqs.empty?
+          %tr
+            %td=req.name
+            %td=req.content
+            %td
+            %td
+        - else
           - first = true
-          - if linked_reqs.nil?
+          - linked_reqs.each do |linked_req|
             %tr
-              %td=req.name
-              %td=req.content
-              %td
-              %td
-          - else
-            - linked_reqs.each do |linked_req|
               - if first
-                %tr
-                  %td{:rowspan => linked_reqs.length}=req.name
-                  %td{:rowspan => linked_reqs.length}=req.content
-                  %td=linked_req.name
-                  %td=linked_req.content
-                  - first = false
-              - else
-                %tr
-                  %td=linked_req.name
-                  %td=linked_req.content
+                - first = false
+                %td{:rowspan => linked_reqs.length}= req.name
+                %td{:rowspan => linked_reqs.length}= req.content
+
+              %td= linked_req.name
+              %td= linked_req.content

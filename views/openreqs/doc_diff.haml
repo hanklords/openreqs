@@ -5,6 +5,7 @@
       .remove {background-color: #fdd; text-decoration: line-through;}
       .add {background-color: #dfd;}
       .req ul li p {display: inline}
+      .req .edit, .req .origin {display: none}
   %body
     %h1
       %a#history{:href => to("/d/#@name/history")}= @name
