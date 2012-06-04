@@ -13,14 +13,9 @@
     = @reqp.content.render
     %ul
       - if @reqp.date
-        %li date: #{@reqp.date.strftime('%Y-%m-%d')}
-
-      - if rationale = @reqp.attributes["rationale"]
-        %li rationale: #{rationale.to_html}
-      - if satisfies = @reqp.attributes["satisfies"]
-        %li 
-          satisfies:
-          = satisfies.to_html
+        %li.date date: #{@reqp.date.strftime('%Y-%m-%d')}
+      - @reqp.attributes.each do |name, attr|
+        %li(class=name) #{name}: #{attr.to_html}
       - if @origin
         %li.origin
           origin:
@@ -46,4 +41,3 @@
           %input(name="value")
 
       %input#save(type="submit" value="Sauver")
-
