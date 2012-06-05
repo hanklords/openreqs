@@ -1,6 +1,6 @@
 %html
   %head
-    %title= @name
+    %title= @doc.name
     %script{:type => "text/javascript", :src => to("/jquery.js")}
     :javascript
       $(function () {
@@ -33,11 +33,11 @@
       %a#summary{:href => to("/")} Return to Summary
       |
       - if @date.nil?
-        %a#edit{:href => to("/d/#@name/edit")} Edit the document
+        %a#edit{:href => to("/d/#@doc.name/edit")} Edit the document
         |
-      %a#history{:href => to("/d/#@name/history")} History
+      %a#history{:href => to("/d/#@doc.name/history")} History
       |
-      %a#download-or{:href => to("/d/#@name.or.gz")} Download
+      %a#download-or{:href => to("/d/#@doc.name.or.gz")} Download
 
-    %h1= @name
+    %h1= @doc.name
     = @doc.to_html
