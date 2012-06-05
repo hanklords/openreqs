@@ -1,9 +1,13 @@
 %html
   %head
     %title #{@doc.name} - Traceability
+
+    :css
+      table {border-collapse: collapse;}
+      td {border: thin solid;}
   %body
     %h1 #{@doc.name} - Traceability for #{@attribute}
-    %table{:border => "1"}
+    %table
       %tr
         %th.source__name Name
         %th.source__content Content
