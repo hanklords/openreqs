@@ -1,6 +1,23 @@
 %html
   %head
     %title #{@doc.name} - Traceability
+    %script{:type => "text/javascript", :src => to("/jquery.js")}
+    :javascript
+      $(function () {
+        $("th").append(" (<a class='hide' href='#'>hide</a>)");
+
+        $("th a.hide").click(function(e) {
+            e.preventDefault();
+            // There is an offset between first line (with rowspan) and the following ones
+            var not_first_offset = #{@source_attributes.length + 2};
+            var this_th = $(this).parents("th");
+            var index = this_th.index() + 1;
+
+            this_th.hide();
+            $("tr.first td:nth-child(" + index + ")").hide();
+            $("tr:not(.first) td:nth-child(" + (index - not_first_offset) + ")").hide();
+        });
+      });
 
     :css
       table {border-collapse: collapse;}
@@ -23,7 +40,7 @@
         - linked_reqs = [EmptyReq.new] if linked_reqs.empty?
         - first = true
         - linked_reqs.each do |linked_req|
-          %tr
+          %tr{:class => first && "first"}
             - if first
               - first = false
               %td{:rowspan => linked_reqs.length}= req.name
