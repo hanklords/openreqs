@@ -16,7 +16,7 @@ class Doc
     @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
     @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     @options[:date] ||= Time.now.utc + 1
-    @doc = @options[:doc]
+    @doc = @options[:doc].clone if @options[:doc]
 
     @doc ||= @docs_table.find_one(
       {"_name" => @name,
@@ -249,7 +249,7 @@ class Req
   def initialize(db, name, options = {})
     @db, @options = db, options
     @options[:date] ||= Time.now.utc + 1
-    @req = @options[:req]
+    @req = @options[:req].clone if @options[:req]
     
     if @req.nil? 
       @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
