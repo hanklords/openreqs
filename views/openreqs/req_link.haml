@@ -23,7 +23,10 @@
       table {border-collapse: collapse;}
       td, th {border: thin solid;}
   %body
-    %h1 #{@doc.name} - Traceability for #{@attribute}
+    %h1
+      %a{:href => to("/d/#{@doc.name}")}= @doc.name
+      \- Traceability for
+      %span(style="font-style: italic;")= @attribute
     %table
       %tr
         %th.source__name Name
