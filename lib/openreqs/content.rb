@@ -35,28 +35,29 @@ class Doc
   def requirement_list
     @requirement_list ||= CreolaExtractURL.new(content).to_a
   end
-  
-  def find_requirements
-    @all_reqs ||= @requirements_table.find(
-      { "_name" => {"$in" => requirement_list},
-        "date"=> {"$lt" => @options[:date]}
-      }, {:sort => ["date", :desc]}
-    ).to_a
-  end
-  
+    
   def requirements
-    @requirements ||= find_requirements.reduce({}) {|m, req|
-      req_name = req["_name"]
-      m[req_name] ||= Req.new(@db, nil, :req => req, :context => @options[:context]) if req["date"] < @options[:date]
-      m
-    }
+    if @requirements
+      @requirements
+    else
+      all_reqs = @requirements_table.find(
+        { "_name" => {"$in" => requirement_list},
+          "date"=> {"$lt" => @options[:date]}
+        }, {:sort => ["date", :desc]}
+      ).to_a
+      @requirements = requirement_list.map {|req_name|
+        if req = all_reqs.find {|creq| creq["_name"] == req_name}
+          Req.new(@db, nil, :req => req, :context => @options[:context])
+        end
+      }.compact
+    end
   end
   
   def to_json(*args)
     doc = @doc.clone
     doc.delete("_id")
     doc["date"] = doc["date"].xmlschema(2)
-    doc["_reqs"] = requirements.values
+    doc["_reqs"] = requirements
     doc.to_json
   end
 
@@ -64,7 +65,7 @@ class Doc
     doc = @doc.clone
     doc.delete("_id")
     doc["date"] = doc["date"].xmlschema(2)
-    doc["_reqs"] = requirements.values
+    doc["_reqs"] = requirements
     doc.to_link
   end
   
@@ -141,7 +142,7 @@ class DocHTML < CreolaHTML
     
     if uri =~ %r{^(http|ftp)://}
       super(uri, text, namespace)
-    elsif req = @options[:requirements][uri]
+    elsif req = @options[:requirements].find {|creq| creq.name == uri}
       ReqHTML.new(req, :context => context).to_html
     elsif @options[:docs].include? uri
       super(context.to("/d/#{uri}"), text || uri, namespace)
@@ -208,7 +209,7 @@ class DocParserReqIf < CreolaTxt
     @previousLevel = level
   end
   def link(uri, text, namespace)
-    if req = @options[:requirements][uri]
+    if req = @options[:requirements].find {|creq| creq.name == uri}
       @requirementsSection << req.to_reqif
       @specificationSection << "<OBJECT>\n"
       @specificationSection << "<SPEC-OBJECT-REF>#{req.name}</SPEC-OBJECT-REF>\n"
@@ -234,7 +235,7 @@ end
 class DocParserTxt < CreolaTxt
   def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
-    if req = @options[:requirements][uri]
+    if req = @options[:requirements].find {|creq| creq.name == uri}
       req.to_txt + "\n"
     else
       super(uri, text, namespace)

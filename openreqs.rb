@@ -439,7 +439,7 @@ get '/d/:doc/requirements.:link' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
-  @reqs = @doc.requirements.values
+  @reqs = @doc.requirements
   @reqs.each {|req|
     linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
     req[@attribute] = linked_reqs.map {|req_name| Req.new(mongo, req_name, :context => self) }
