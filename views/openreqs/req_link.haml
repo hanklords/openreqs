@@ -5,27 +5,29 @@
     %h1 #{@doc.name} - Traceability for #{@attribute}
     %table{:border => "1"}
       %tr
-        %th Name
-        %th Content
-        %th Linked name
-        %th Linked content
+        %th.source__name Name
+        %th.source__content Content
+        - @source_attributes.each do |attr_name|
+          %th(class="source_#{attr_name}")= attr_name
+        %th.linked__name Linked name
+        %th.linked__content Linked content
+        - @linked_attributes.each do |attr_name|
+          %th(class="linked_#{attr_name}")= attr_name
 
       - @reqs.each do |req|
         - linked_reqs = req[@attribute]
-        - if linked_reqs.empty?
+        - linked_reqs = [EmptyReq.new] if linked_reqs.empty?
+        - first = true
+        - linked_reqs.each do |linked_req|
           %tr
-            %td=req.name
-            %td=req.content
-            %td
-            %td
-        - else
-          - first = true
-          - linked_reqs.each do |linked_req|
-            %tr
-              - if first
-                - first = false
-                %td{:rowspan => linked_reqs.length}= req.name
-                %td{:rowspan => linked_reqs.length}= req.content
+            - if first
+              - first = false
+              %td{:rowspan => linked_reqs.length}= req.name
+              %td{:rowspan => linked_reqs.length}= req.content
+              - @source_attributes.each do |attr_name|
+                %td{:rowspan => linked_reqs.length}= req[attr_name]
 
-              %td= linked_req.name
-              %td= linked_req.content
+            %td= linked_req.name
+            %td= linked_req.content
+            - @linked_attributes.each do |attr_name|
+              %td= linked_req[attr_name]

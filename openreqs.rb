@@ -444,6 +444,11 @@ get '/d/:doc/requirements.:link' do
     linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
     req[@attribute] = linked_reqs.map {|req_name| Req.new(mongo, req_name, :context => self) }
   }
+  
+  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
+  @source_attributes = get_req_attributes.call(@reqs)
+  @source_attributes.delete(@attribute)
+  @linked_attributes = @reqs.map {|req| get_req_attributes.call(req[@attribute]) }.flatten.uniq
 
   haml :req_link
 end
