@@ -41,3 +41,8 @@
 
     %h1= @doc.name
     = @doc.to_html
+
+    %h2 Traceability matrix
+    %ul
+      %li
+        %a{:href => to("/d/#{@doc.name}/requirements.satisfies")} satisfies
