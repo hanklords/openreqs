@@ -4,7 +4,7 @@
   %body
     %ul
       - @reqs.each do |req|
-        - linked_reqs = @reqs_traceability[req]
+        - linked_reqs = req[@attribute]
         - first = true
         - if linked_reqs.nil?
           %p

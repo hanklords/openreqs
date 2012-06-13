@@ -408,6 +408,25 @@ post '/d/:doc/edit' do
 end
 
 get '/d/:doc/requirements.:link.csv' do
+  @attribute = params[:link]
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+
+  @reqs = @doc.requirements
+  @reqs.each {|req|
+    linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
+    req[@attribute] = linked_reqs.map {|req_name| Req.new(mongo, req_name, :context => self) }
+  }
+  
+  # List the attributes of a req
+  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
+  
+  @source_attributes = get_req_attributes.call(@reqs)
+  @source_attributes.delete(@attribute)
+  @linked_attributes = @reqs.map {|req| get_req_attributes.call(req[@attribute]) }.flatten.uniq
+
+  haml :req_link_csv
+=begin
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   if params[:with_history] == "1"
@@ -431,7 +450,8 @@ get '/d/:doc/requirements.:link.csv' do
     @reqs_traceability[req] = @linked_reqs
   }
 
-haml :req_link_csv
+  haml :req_link_csv
+=end
 end
 
 get '/d/:doc/requirements.:link' do
