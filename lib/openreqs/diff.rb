@@ -91,9 +91,10 @@ class DocDiff < CreolaDiff
   end
   
   def heading(level, text); super(level + 1, text) end
-  def link(uri, text, namespace)
-    req_old = @doc_old.requirements[uri]
-    req_new = @doc_new.requirements[uri]
+  
+  def image(url, text)
+    req_old = @doc_old.requirements.find {|creq| creq.name == url}
+    req_new = @doc_new.requirements.find {|creq| creq.name == url}
     if req_old || req_new
       case @discard_state
       when :remove
@@ -103,13 +104,12 @@ class DocDiff < CreolaDiff
       else
         ReqDiff.new(req_old, req_new, @options).to_html
       end
-    elsif @doc_old.docs.include?(uri) || @doc_new.docs.include?(uri)
-      super(@options[:context].to("/d/#{uri}"), text || uri, namespace)
+    elsif url !~ %r(/)
+      "{{" + url + (text ? "|" + text : "") + "}}"
     else
-      super(uri, text, namespace)
+      super(url, text)
     end
   end
-  
 end
 
 class ReqDiff

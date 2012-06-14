@@ -9,6 +9,13 @@ class CreolaExtractURL < Creola
   def link(url, text, namespace); @links << url end
 end
 
+class CreolaExtractInline < Creola
+  def initialize(*args);  super; @links = [] end
+  alias :to_a :render
+  def root(content); @links end
+  def image(url, text); @links << url end
+end
+
 class Doc
   attr_reader :name, :options
   def initialize(db, name, options = {})
@@ -33,7 +40,7 @@ class Doc
   def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
  
   def requirement_list
-    @requirement_list ||= CreolaExtractURL.new(content).to_a
+    @requirement_list ||= CreolaExtractInline.new(content).to_a
   end
     
   def requirements
@@ -130,36 +137,29 @@ class DocIndex < Doc
       @db["docs"].insert @doc
     end
   end
-  
-  def requirement_list; [] end
-  def to_html; DocIndexHTML.new(content, :docs => docs, :context => @options[:context]).to_html end
 end
 
 class DocHTML < CreolaHTML
   def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
-    context = @options[:context]
-    
     if uri =~ %r{^(http|ftp)://}
       super(uri, text, namespace)
-    elsif req = @options[:requirements].find {|creq| creq.name == uri}
-      ReqHTML.new(req, :context => context).to_html
     elsif @options[:docs].include? uri
-      super(context.to("/d/#{uri}"), text || uri, namespace)
+      super(@options[:context].to("/d/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/r/#{uri}/edit"), text || uri, namespace)
+      super(@options[:context].to("/d/#{uri}/edit"), text || uri, namespace)
     end
   end
-end
-
-class DocIndexHTML < CreolaHTML
-  def link(uri, text, namespace)
-    context = @options[:context]
-    
-    if @options[:docs].include? uri
-      super(context.to("/d/#{uri}"), text || uri, namespace)
+  
+  def image(url, text)
+    if url =~ %r{^(http|ftp)://}
+      super(url, text)
+    elsif req = @options[:requirements].find {|creq| creq.name == url}
+      ReqHTML.new(req, :context => @options[:context]).to_html
+    elsif url !~ %r(/)
+      link(@options[:context].to("/r/#{url}/edit"), text || url, nil)
     else
-      super(context.to("/d/#{uri}/edit"), text || uri, namespace)
+      super(url, text)
     end
   end
 end
