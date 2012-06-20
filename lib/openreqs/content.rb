@@ -234,11 +234,14 @@ end
 
 class DocParserTxt < CreolaTxt
   def heading(level, text); super(level + 1, text) end
-  def link(uri, text, namespace)
-    if req = @options[:requirements].find {|creq| creq.name == uri}
+  
+  def image(url, text)
+    if url =~ %r{^(http|ftp)://}
+      super(url, text)
+    elsif req = @options[:requirements].find {|creq| creq.name == url}
       req.to_txt + "\n"
     else
-      super(uri, text, namespace)
+      super(url, text)
     end
   end
   
