@@ -12,10 +12,27 @@
             var not_first_offset = #{@source_attributes.length + 2};
             var this_th = $(this).parents("th");
             var index = this_th.index() + 1;
+            var attr_class = this_th.attr('class');
 
             this_th.hide();
+            //var attribute=this_th.text();
             $("tr.first td:nth-child(" + index + ")").hide();
             $("tr:not(.first) td:nth-child(" + (index - not_first_offset) + ")").hide();
+            $("li."+attr_class).show();
+        });
+        $("li").click(function(e) {
+            e.preventDefault();
+            // There is an offset between first line (with rowspan) and the following ones
+            var not_first_offset = #{@source_attributes.length + 2};
+            var attr_class = $(this).attr('class');
+            var this_th = $(document).find("th."+attr_class);
+            var index = this_th.index("th") + 1;
+
+            this_th.show();
+            //var attribute=this_th.text();
+            $("tr.first td:nth-child(" + index + ")").show();
+            $("tr:not(.first) td:nth-child(" + (index - not_first_offset) + ")").show();
+            $("li."+attr_class).hide();
         });
       });
 
@@ -55,3 +72,12 @@
             %td= linked_req.content
             - @linked_attributes.each do |attr_name|
               %td= linked_req[attr_name]
+    %ul.Attributes
+      %li.source__name(style="display: none; ") <a href="#"> Name </a>
+      %li.source__content(style="display: none; ") <a href="#"> Content </a>
+      - @source_attributes.each do |attr_name|
+        %li(class="source_#{attr_name}" style="display: none; ") <a href="#"> source_#{attr_name} </a>
+      %li.linked__name(style="display: none; ") <a href="#"> Linked name </a>
+      %li.linked__content(style="display: none; ") <a href="#"> Linked content </a>
+      - @linked_attributes.each do |attr_name|
+        %li(class="linked_#{attr_name}" style="display: none; ") <a href="#"> linked_#{attr_name} </a>
