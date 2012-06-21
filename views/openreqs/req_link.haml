@@ -4,6 +4,18 @@
     %script{:type => "text/javascript", :src => to("/jquery.js")}
     :javascript
       $(function () {
+        var attributes_html= '<ul class="Attributes">\n';
+
+        var ths=document.getElementsByTagName("th");
+        for (var i=0;i<ths.length;i++){ 
+          var th_class=ths[i].className;
+          var th_text=ths[i].innerHTML;
+          attributes_html+='<li class='+th_class+' style="display: none; "><a href="#"> '+th_text+' </a></li>\n';
+        } 
+
+        attributes_html+= '</ul>\n';
+        $(document.body).append(attributes_html);
+
         $("th").append(" (<a class='hide' href='#'>hide</a>)");
 
         $("th a.hide").click(function(e) {
@@ -45,39 +57,30 @@
       \- Traceability for
       %span(style="font-style: italic;")= @attribute
     %table
-      %tr
-        %th.source__name Name
-        %th.source__content Content
-        - @source_attributes.each do |attr_name|
-          %th(class="source_#{attr_name}")= attr_name
-        %th.linked__name Linked name
-        %th.linked__content Linked content
-        - @linked_attributes.each do |attr_name|
-          %th(class="linked_#{attr_name}")= attr_name
-
-      - @reqs.each do |req|
-        - linked_reqs = req[@attribute]
-        - linked_reqs = [EmptyReq.new] if linked_reqs.empty?
-        - first = true
-        - linked_reqs.each do |linked_req|
-          %tr{:class => first && "first"}
-            - if first
-              - first = false
-              %td{:rowspan => linked_reqs.length}= req.name
-              %td{:rowspan => linked_reqs.length}= req.content
-              - @source_attributes.each do |attr_name|
-                %td{:rowspan => linked_reqs.length}= req[attr_name]
-
-            %td= linked_req.name
-            %td= linked_req.content
-            - @linked_attributes.each do |attr_name|
-              %td= linked_req[attr_name]
-    %ul.Attributes
-      %li.source__name(style="display: none; ") <a href="#"> Name </a>
-      %li.source__content(style="display: none; ") <a href="#"> Content </a>
-      - @source_attributes.each do |attr_name|
-        %li(class="source_#{attr_name}" style="display: none; ") <a href="#"> source_#{attr_name} </a>
-      %li.linked__name(style="display: none; ") <a href="#"> Linked name </a>
-      %li.linked__content(style="display: none; ") <a href="#"> Linked content </a>
-      - @linked_attributes.each do |attr_name|
-        %li(class="linked_#{attr_name}" style="display: none; ") <a href="#"> linked_#{attr_name} </a>
+      %thead
+        %tr
+          %th.source__name Name
+          %th.source__content Content
+          - @source_attributes.each do |attr_name|
+            %th(class="source_#{attr_name}")= attr_name
+          %th.linked__name Linked name
+          %th.linked__content Linked content
+          - @linked_attributes.each do |attr_name|
+            %th(class="linked_#{attr_name}")= attr_name
+      %tbody
+        - @reqs.each do |req|
+          - linked_reqs = req[@attribute]
+          - linked_reqs = [EmptyReq.new] if linked_reqs.empty?
+          - first = true
+          - linked_reqs.each do |linked_req|
+            %tr{:class => first && "first"}
+              - if first
+                - first = false
+                %td{:rowspan => linked_reqs.length}= req.name
+                %td{:rowspan => linked_reqs.length}= req.content
+                - @source_attributes.each do |attr_name|
+                  %td{:rowspan => linked_reqs.length}= req[attr_name]
+              %td= linked_req.name
+              %td= linked_req.content
+              - @linked_attributes.each do |attr_name|
+                %td= linked_req[attr_name]
