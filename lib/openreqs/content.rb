@@ -269,7 +269,13 @@ class DocParserTxt < CreolaTxt
     if url =~ %r{^(http|ftp)://}
       super(url, text)
     elsif req = @options[:requirements].find {|creq| creq.name == url}
-      req.to_txt + "\n"
+      str = "==== #{req.name} ====\n\n"
+      str << req.content << "\n\n"
+      str << "* date: #{req.date}\n"
+      req.attributes.each {|k, v|
+        str << "* #{k}: #{v}\n"
+      }
+      str << "\n\n"
     else
       super(url, text)
     end
