@@ -12,34 +12,32 @@ end
 
 class CreolaDiff < Creola
   extend Forwardable
-  attr_reader :discard_state
-  
-  def initialize(old_creole, new_creole, slave_parser)
+
+  def initialize(old_creole, new_creole, renderer)
     @old_content = CreolaList.new(old_creole).to_a
     @new_content = CreolaList.new(new_creole).to_a
-    @slave_parser = slave_parser
+    @renderer = renderer
     
-    slave_parser.diff_parser = self
     super(nil, nil)
   end
   
-  def_delegators :@slave_parser, :root, :line_break, :heading, :paragraph,
-      :nowiki, :nowiki_inline, :bold, :italic,
-      :unnumbered, :numbered, :unnumbered_item, :numbered_item,
-      :link, :table, :row, :cell, :header_cell, :image, :horizontal_rule, :words
+  def_delegators :@renderer, :root, :line_break, :heading, :paragraph,
+    :nowiki, :nowiki_inline, :bold, :italic,
+    :unnumbered, :numbered, :unnumbered_item, :numbered_item,
+    :link, :table, :row, :cell, :header_cell, :image, :horizontal_rule, :words
   
   def match(event)
-    @discard_state = nil
+    @renderer.discard_state = nil
     @state = tokenize_string(event.new_element, @state)
   end
 
   def discard_a(event)
-    @discard_state = :remove
+    @renderer.discard_state = :remove
     @state = tokenize_string(event.old_element, @state)
   end
 
   def discard_b(event)
-    @discard_state = :add
+    @renderer.discard_state = :add
     @state = tokenize_string(event.new_element, @state)
   end
 
@@ -53,10 +51,10 @@ class CreolaDiff < Creola
 end
 
 class ContentDiffHTML < CreolaHTML
-  attr_accessor :diff_parser
+  attr_accessor :discard_state
   
   def words(*words);
-    case diff_parser.discard_state
+    case @discard_state
     when :remove
       %{<span class="remove">} + words.join + "</span>"
     when :add
@@ -68,10 +66,10 @@ class ContentDiffHTML < CreolaHTML
 end
 
 class ContentDiffHTMLNoClass < CreolaHTML
-  attr_accessor :diff_parser
+  attr_accessor :discard_state
   
   def words(*words);
-    case diff_parser.discard_state
+    case @discard_state
     when :remove
       %{<span style="background-color: #fdd; text-decoration: line-through;">} + words.join + "</span>"
     when :add
@@ -85,8 +83,8 @@ end
 class DocDiff < CreolaDiff
   attr_reader :doc_old, :doc_new
   def initialize(doc_old, doc_new, options = {})
-    options[:slave_parser] ||= ContentDiffHTML.new
-    super(doc_old.content, doc_new.content, options[:slave_parser])
+    options[:renderer] ||= ContentDiffHTML.new
+    super(doc_old.content, doc_new.content, options[:renderer])
     @doc_old, @doc_new, @options = doc_old, doc_new, options
   end
   
@@ -96,7 +94,7 @@ class DocDiff < CreolaDiff
     req_old = @doc_old.requirements.find {|creq| creq.name == url}
     req_new = @doc_new.requirements.find {|creq| creq.name == url}
     if req_old || req_new
-      case @discard_state
+      case @renderer.discard_state
       when :remove
         ReqDiff.new(req_old, EmptyReq.new, @options).to_html
       when :add
@@ -117,7 +115,7 @@ class ReqDiff
   def initialize(req_old, req_new, options = {})
     @req_old, @req_new, @options = req_old || EmptyReq.new, req_new || EmptyReq.new, options
     @context = @options[:context]
-    @content = CreolaDiff.new(@req_old.content, @req_new.content, options[:slave_parser])
+    @content = CreolaDiff.new(@req_old.content, @req_new.content, options[:renderer])
   end
 
   def attributes
@@ -131,7 +129,7 @@ class ReqDiff
   def to_html
     template = File.join(@context.settings.views, TEMPLATE)
     engine = Haml::Engine.new(File.read(template))
-    @context.instance_variable_set :@reqp, self
+    @context.instance_variable_set :@inline, self
     engine.render(@context)
   end
 end

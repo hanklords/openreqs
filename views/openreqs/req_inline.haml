@@ -10,7 +10,7 @@
       %a{:href => to("/r/#{@inline.name}/edit")} edit
       )
   .content
-    = @inline.content.to_html
+    = @inline.content.render
     %ul
       - if @inline.date
         %li.date date: #{@inline.date.strftime('%Y-%m-%d')}
