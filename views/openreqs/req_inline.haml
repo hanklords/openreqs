@@ -1,20 +1,20 @@
-.req{:id => @reqp.name}
+.req{:id => @inline.name}
   .id
     - if @date
-      = @reqp.name
+      = @inline.name
       - if @req
         (on #{@date.strftime('%F %T')})
     - else
-      =@reqp.name
+      =@inline.name
       (
-      %a{:href => to("/r/#{@reqp.name}/edit")} edit
+      %a{:href => to("/r/#{@inline.name}/edit")} edit
       )
   .content
-    = @reqp.content.render
+    = @inline.content.to_html
     %ul
-      - if @reqp.date
-        %li.date date: #{@reqp.date.strftime('%Y-%m-%d')}
-      - @reqp.attributes.each do |name, attr|
+      - if @inline.date
+        %li.date date: #{@inline.date.strftime('%Y-%m-%d')}
+      - @inline.attributes.each do |name, attr|
         %li(class=name) #{name}: #{attr.to_html}
       - if @origin
         %li.origin
@@ -22,15 +22,15 @@
           - @origin.each do |doc|
             %a{:href => to("/d/#{doc}")}= doc
   .edit
-    %form{:method => "post", :action => to("/r/#{@reqp.name}/edit")}
+    %form{:method => "post", :action => to("/r/#{@inline.name}/edit")}
       %h2 Text
-      %textarea(name="content" cols=80 rows=5)= @reqp.content.text
+      %textarea(name="content" cols=80 rows=5)= @inline.content.text
 
       %h2 Attributes
       %ul
-        - if @reqp.date
+        - if @inline.date
           %li date: #{Time.now.strftime('%Y-%m-%d')}
-        - @reqp.attributes.each do |k,v| 
+        - @inline.attributes.each do |k,v| 
           %li 
             %textarea(name="#{k}" cols=15 rows=1)= k
             \: 

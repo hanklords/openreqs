@@ -16,6 +16,8 @@ require 'openreqs/diff'
 
 configure do
   set :mongo, Mongo::Connection.new.db("openreqs")
+  set :doc_template, %q{= @inline.content.to_html}
+  set :req_inline_template, lambda {File.read(File.join(views, 'req_inline.haml'))}
   mime_type :pem, "application/x-pem-file"
   
   Qu.configure do |c|

@@ -17,7 +17,7 @@ class CreolaExtractInline < Creola
 end
 
 class Doc
-  attr_reader :name, :options
+  attr_reader :options
   def initialize(db, name, options = {})
     @db, @name, @options = db, name, options
     @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
@@ -36,6 +36,10 @@ class Doc
   def [](attr); exist? ? @doc[attr] : nil end
   def date; self["date"] end
   def content; self["_content"] || '' end
+  def name; self["_name"] end
+  def attributes
+    exist? ? @doc.select {|k,v| k !~ /^_/ && k != "date" } : []
+  end
   
   def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
  
@@ -47,14 +51,14 @@ class Doc
     if @requirements
       @requirements
     else
-      all_reqs = @requirements_table.find(
+      all_reqs = @docs_table.find(
         { "_name" => {"$in" => requirement_list},
           "date"=> {"$lt" => @options[:date]}
         }, {:sort => ["date", :desc]}
       ).to_a
       @requirements = requirement_list.map {|req_name|
         if req = all_reqs.find {|creq| creq["_name"] == req_name}
-          Req.new(@db, nil, :req => req, :context => @options[:context])
+          Doc.new(@db, nil, :doc => req, :context => @options[:context])
         end
       }.compact
     end
@@ -78,9 +82,10 @@ class Doc
   
   def to_hash; @doc || {} end
   def to_html
-    DocHTML.new(content,
+    DocHTML.new(self,
       :docs => docs,
       :requirements => requirements,
+      :template => @options[:context].settings.doc_template,
       :context => @options[:context]
     ).to_html 
   end
@@ -139,15 +144,17 @@ class DocIndex < Doc
   end
 end
 
-class DocHTML < CreolaHTML
+class ContentHTML < CreolaHTML
+  def context; @options[:context] end
+  
   def heading(level, text); super(level + 1, text) end
   def link(uri, text, namespace)
     if uri =~ %r{^(http|ftp)://}
       super(uri, text, namespace)
     elsif @options[:docs].include? uri
-      super(@options[:context].to("/d/#{uri}"), text || uri, namespace)
+      super(context.to("/d/#{uri}"), text || uri, namespace)
     else
-      super(@options[:context].to("/d/#{uri}/edit"), text || uri, namespace)
+      super(context.to("/d/#{uri}/edit"), text || uri, namespace)
     end
   end
   
@@ -155,12 +162,34 @@ class DocHTML < CreolaHTML
     if url =~ %r{^(http|ftp)://}
       super(url, text)
     elsif req = @options[:requirements].find {|creq| creq.name == url}
-      ReqHTML.new(req, :context => @options[:context]).to_html
+      DocHTML.new(req, @options.merge(:template => context.settings.req_inline_template)).to_html
     elsif url !~ %r(/)
-      link(@options[:context].to("/r/#{url}/edit"), text || url, nil)
+      link(context.to("/r/#{url}/edit"), text || url, nil)
     else
       super(url, text)
     end
+  end
+end
+
+class DocHTML
+  def initialize(doc, options = {})
+    @doc, @options = doc, options
+    @context = @options[:context]
+    @template = @options[:template]
+  end
+  
+  def attributes
+    @attributes ||= Hash[@doc.attributes.map {|k,v| [k, ContentHTML.new(v, @options)]}]
+  end
+  
+  def name; @doc.name end
+  def date; @doc.date end
+  def content; ContentHTML.new(@doc.content, @options) end
+    
+  def to_html
+    engine = Haml::Engine.new(@template)
+    @context.instance_variable_set :@inline, self
+    engine.render(@context)
   end
 end
 
