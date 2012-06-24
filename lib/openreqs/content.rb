@@ -34,6 +34,7 @@ class Doc
   
   def exist?; !@doc.nil? end
   def [](attr); exist? ? @doc[attr] : nil end
+  def []=(attr, value); @doc[attr] = value end
   def date; self["date"] end
   def content; self["_content"] || '' end
   def name; self["_name"] end
