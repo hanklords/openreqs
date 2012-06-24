@@ -417,7 +417,7 @@ get '/d/:doc/requirements.:link.csv' do
   @reqs = @doc.requirements
   @reqs.each {|req|
     linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
-    req[@attribute] = linked_reqs.map {|req_name| Req.new(mongo, req_name, :context => self) }
+    req[@attribute] = linked_reqs.map {|req_name| Doc.new(mongo, req_name, :context => self) }
   }
   
   # List the attributes of a req
@@ -438,7 +438,7 @@ get '/d/:doc/requirements.:link' do
   @reqs = @doc.requirements
   @reqs.each {|req|
     linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
-    req[@attribute] = linked_reqs.map {|req_name| Req.new(mongo, req_name, :context => self) }
+    req[@attribute] = linked_reqs.map {|req_name| Doc.new(mongo, req_name, :context => self) }
   }
   
   # List the attributes of a req
