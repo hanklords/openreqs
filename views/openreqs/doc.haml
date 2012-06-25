@@ -45,9 +45,8 @@
     %div
       %a#summary{:href => to("/")} Return to Summary
       |
-      - if @date.nil?
-        %a#edit{:href => to("/d/#{@doc.name}/edit")} Edit the document
-        |
+      %a#edit{:href => to("/d/#{@doc.name}/edit")} Edit the document
+      |
       %a#history{:href => to("/d/#{@doc.name}/history")} History
       |
       %a#download-or{:href => to("/d/#{@doc.name}.or.gz")} Download

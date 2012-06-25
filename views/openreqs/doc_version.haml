@@ -1,9 +1,14 @@
 %html
   %head
-    %title= @name
+    %title= @doc.name
     :css
       .req ul li p {display: inline}
+      .req .id {font-weight: bold;}
   %body
-    %h1
-      %a#history{:href => to("/d/#@name/history")}= @name
+    %div
+      %a#history{:href => to("/d/#{@doc.name}/history")} History
+      |
+      %a#download-or{:href => to("/d/#{@doc.name}.or.gz")} Download
+
+    %h1.title= @doc.name
     = @doc.to_html

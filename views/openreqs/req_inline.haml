@@ -22,24 +22,25 @@
           origin:
           - @origin.each do |doc|
             %a{:href => to("/d/#{doc}")}= doc
-  .edit
-    %form{:method => "post", :action => to("/r/#{@inline.name}/edit")}
-      %h2 Text
-      %textarea(name="content" cols=80 rows=5)= @inline.content.text
+  - if !@date
+    .edit
+      %form{:method => "post", :action => to("/r/#{@inline.name}/edit")}
+        %h2 Text
+        %textarea(name="content" cols=80 rows=5)= @inline.content.text
 
-      %h2 Attributes
-      %ul
-        - if @inline.date
-          %li date: #{Time.now.strftime('%Y-%m-%d')}
-        - @inline.attributes.each do |k,v| 
-          %li 
-            %textarea(name="#{k}" cols=15 rows=1)= k
-            \: 
-            %textarea(name="v#{k}" cols=40 rows=1)= v.text
-        %li
-          %input(name="key")
-          \:
-          %input(name="value")
+        %h2 Attributes
+        %ul
+          - if @inline.date
+            %li date: #{Time.now.strftime('%Y-%m-%d')}
+          - @inline.attributes.each do |k,v| 
+            %li 
+              %textarea(name="#{k}" cols=15 rows=1)= k
+              \: 
+              %textarea(name="v#{k}" cols=40 rows=1)= v.text
+          %li
+            %input(name="key")
+            \:
+            %input(name="value")
 
-      %input.save(type="submit" value="Save")
-      %input.reset(type="reset" value="Cancel")
+        %input.save(type="submit" value="Save")
+        %input.reset(type="reset" value="Cancel")
