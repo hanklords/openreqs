@@ -4,7 +4,7 @@
     %script{:type => "text/javascript", :src => to("/jquery.js")}
     :javascript
       $(function () {
-        $(".req .id a").click(function(e) {
+        $(".req .id a, .req .edit .reset").click(function(e) {
             e.preventDefault();
             $(".edit, .content", $(this).parents(".req")).toggle('fast');
         });
