@@ -4,6 +4,16 @@
     %script{:type => "text/javascript", :src => to("/jquery.js")}
     :javascript
       $(function () {
+        $("#edit").click(function(e) {
+          e.preventDefault();
+          $(".show-edit").toggle('fast');
+        });
+
+        $(".title .show-edit a").click(function(e) {
+          e.preventDefault();
+          $(".edit, .content", $(this).parents(".doc")).toggle('fast');
+        });
+
         $(".req .id a, .req .edit .reset").click(function(e) {
             e.preventDefault();
             $(".edit, .content", $(this).parents(".req")).toggle('fast');
@@ -21,13 +31,16 @@
             $(".edit #save", req).removeAttr("disabled");
           });
         });
+
+
       });
 
     :css
-      img {max-width: 80%}
-      .req ul li p {display: inline}
-      .req .id {font-weight: bold}
-      .req .edit, .req .origin {display: none}
+      img {max-width: 80%;}
+      .req ul li p {display: inline;}
+      .req .id {font-weight: bold;}
+      .req .edit, .req .origin, .doc .edit {display: none;}
+      .show-edit {display: none;}
   %body
     %div
       %a#summary{:href => to("/")} Return to Summary
@@ -39,10 +52,25 @@
       |
       %a#download-or{:href => to("/d/#{@doc.name}.or.gz")} Download
 
-    %h1= @doc.name
-    = @doc.to_html
+    .doc
+      %h1.title
+        = @doc.name
+        %span.show-edit
+          (
+          %a{:href => to("/d/#{@doc.name}/edit")} edit
+          )
 
-    %h2 Traceability matrix
-    %ul
-      %li
-        %a{:href => to("/d/#{@doc.name}/requirements.satisfies")} satisfies
+      .content
+        = @doc.to_html
+
+        %h2 Traceability matrix
+        %ul
+          %li
+            %a{:href => to("/d/#{@doc.name}/requirements.satisfies")} satisfies
+
+      .edit
+        %form{:method => "post", :action => to("/d/#{@doc.name}/edit")}
+          %textarea(name="content" cols=80 rows=40)= @doc.content
+          %p
+          %input#save(type="submit" value="Sauver")
+

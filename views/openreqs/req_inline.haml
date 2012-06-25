@@ -5,10 +5,11 @@
       - if @req
         (on #{@date.strftime('%F %T')})
     - else
-      =@inline.name
-      (
-      %a{:href => to("/r/#{@inline.name}/edit")} edit
-      )
+      = @inline.name
+      %span.show-edit
+        (
+        %a{:href => to("/r/#{@inline.name}/edit")} edit
+        )
   .content
     = @inline.content.render
     %ul
