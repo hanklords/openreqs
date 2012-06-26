@@ -110,6 +110,10 @@ class DocDiff < CreolaDiff
   end
 end
 
+class EmptyReq < Doc
+  def initialize; end
+end
+
 class ReqDiff
   TEMPLATE = 'req_inline.haml'
   def initialize(req_old, req_new, options = {})

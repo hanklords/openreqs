@@ -240,7 +240,28 @@ class DocParserReqIf < CreolaTxt
   end
   def link(uri, text, namespace)
     if req = @options[:requirements].find {|creq| creq.name == uri}
-      @requirementsSection << req.to_reqif
+      @requirementsSection = "<SPEC-OBJECT IDENTIFIER=\"#{req.name}\" LAST-CHANGE=\"#{req.date.strftime("%Y-%m-%dT%H:%M:%S")}\">\n"
+      @requirementsSection << "<VALUES>\n"
+      @requirementsSection << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{req.name}\">\n"
+      @requirementsSection << "<DEFINITION>\n"
+      @requirementsSection << "<ATTRIBUTE-DEFINITION-STRING-REF>ID</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+      @requirementsSection << "</DEFINITION>\n"
+      @requirementsSection << "</ATTRIBUTE-VALUE-STRING>\n"
+      @requirementsSection << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{req.content}\">\n"
+      @requirementsSection << "<DEFINITION>\n"
+      @requirementsSection << "<ATTRIBUTE-DEFINITION-STRING-REF>Description</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+      @requirementsSection << "</DEFINITION>\n"
+      @requirementsSection << "</ATTRIBUTE-VALUE-STRING>\n"
+      req.attributes.each {|k, v|
+        @requirementsSection << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{v}\">\n"
+        @requirementsSection << "<DEFINITION>\n"
+        @requirementsSection << "<ATTRIBUTE-DEFINITION-STRING-REF>#{k}</ATTRIBUTE-DEFINITION-STRING-REF>\n"
+        @requirementsSection << "</DEFINITION>\n"
+        @requirementsSection << "</ATTRIBUTE-VALUE-STRING>\n"
+      }
+      @requirementsSection << "</VALUES>\n"
+      @requirementsSection << "</SPEC-OBJECT>\n"
+      
       @specificationSection << "<OBJECT>\n"
       @specificationSection << "<SPEC-OBJECT-REF>#{req.name}</SPEC-OBJECT-REF>\n"
       @specificationSection << "</OBJECT>\n"
@@ -282,162 +303,4 @@ class DocParserTxt < CreolaTxt
   end
   
   def to_txt; "= #{@options[:name]} =\n\n" + super end
-end
-
-class Req
-  attr_reader :options
-  def initialize(db, name, options = {})
-    @db, @options = db, options
-    @options[:date] ||= Time.now.utc + 1
-    @req = @options[:req].clone if @options[:req]
-    
-    if @req.nil? 
-      @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
-      @req = @requirements_table.find_one(
-        {"_name" => name,
-        "date" => {"$lt" => @options[:date]}
-        }, {:sort => ["date", :desc]}
-      )
-    end
-  end
-  
-  def attributes
-    exist? ? @req.select {|k,v| k !~ /^_/ && k != "date" } : []
-  end
-  
-  def exist?; !@req.nil? end
-  def [](attr); exist? ? @req[attr] : nil end
-  def []=(attr, value); @req[attr] = value end
-  def date; self["date"] end
-  def content; self["_content"] || '' end
-  def name; self["_name"] end
-  def to_hash; @req || {} end
-  def to_txt
-    str = "==== #{name} ====\n\n"
-    str << content << "\n\n"
-    str << "* date: #{date}\n"
-    attributes.each {|k, v|
-      str << "* #{k}: #{v}\n"
-    }
-    str << "\n"
-  end
-  
-  def to_json(*args)
-    req = @req.clone
-    req.delete("_id")
-    req["date"] = req["date"].xmlschema(2)
-    req.to_json
-  end
-
-  def to_reqif
-    str = "<SPEC-OBJECT IDENTIFIER=\"#{name}\" LAST-CHANGE=\"#{date.strftime("%Y-%m-%dT%H:%M:%S")}\">\n"
-    str << "<VALUES>\n"
-    str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{name}\">\n"
-    str << "<DEFINITION>\n"
-    str << "<ATTRIBUTE-DEFINITION-STRING-REF>ID</ATTRIBUTE-DEFINITION-STRING-REF>\n"
-    str << "</DEFINITION>\n"
-    str << "</ATTRIBUTE-VALUE-STRING>\n"
-    str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{content}\">\n"
-    str << "<DEFINITION>\n"
-    str << "<ATTRIBUTE-DEFINITION-STRING-REF>Description</ATTRIBUTE-DEFINITION-STRING-REF>\n"
-    str << "</DEFINITION>\n"
-    str << "</ATTRIBUTE-VALUE-STRING>\n"
-    attributes.each {|k, v|
-      str << "<ATTRIBUTE-VALUE-STRING THE-VALUE=\"#{v}\">\n"
-      str << "<DEFINITION>\n"
-      str << "<ATTRIBUTE-DEFINITION-STRING-REF>#{k}</ATTRIBUTE-DEFINITION-STRING-REF>\n"
-      str << "</DEFINITION>\n"
-      str << "</ATTRIBUTE-VALUE-STRING>\n"
-    }
-    str << "</VALUES>\n"
-    str << "</SPEC-OBJECT>\n"
-  end
-
-  def to_link(linkName)
-    if exist? then
-      str = "#{name} "
-      str << content
-      puts "Looking for #{linkName}\n"
-      unless @req[linkName].nil?
-        @requirement_list ||= CreolaExtractURL.new(@req[linkName]).to_a
-        @reqs = @requirement_list.map {|req_name| Req.new(mongo, req_name, :context => self) }
-        @reqs.each {|req|
-          puts req
-          req.to_txt
-        }
-      end
-      str << "\n"
-      # puts str
-    else
-    end
-  end
-
-end
-
-class ReqVersions
-  include Enumerable
-
-  def initialize(db, options = {})
-    @db, @options = db, options
-    @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
-    find_options = {"_name" => @options[:name]}
-    find_options["date"] = {"$gt" => @options[:after]} if @options[:after]
-    @reqs = @requirements_table.find(find_options, {:sort => ["date", :desc]}).to_a
-  end
-  
-
-  def empty?; @reqs.count == 0 end
-  def exist?; !empty? end
-
-  def name; @options[:name] end
-  def dates; @reqs.map {|doc| doc["date"]} end
-
-  def each
-    @reqs.each {|req| yield Req.new(@db, name, @options.merge(:req => req))}
-    self
-  end
-  
-  def to_json(*args)
-    @reqs.map {|doc|
-      doc.delete("_id")
-      doc["date"] = doc["date"].xmlschema(2)
-      doc
-    }.to_json
-  end
-
-  def to_link(*args)
-    @reqs.map {|doc|
-      doc.delete("_id")
-      doc["date"] = doc["date"].xmlschema(2)
-      doc
-    }.to_link
-  end
-
-end
-
-class EmptyReq < Req
-  def initialize; end
-end
-
-class ReqHTML
-  TEMPLATE = 'req_inline.haml'
-  def initialize(req, options = {})
-    @req, @options = req, options
-    @context = @options[:context]
-  end
-  
-  def attributes
-    @attributes ||= Hash[@req.attributes.map {|k,v| [k, CreolaHTML.new(v)]}]
-  end
-  
-  def name; @req.name end
-  def date; @req.date end
-  def content; CreolaHTML.new(@req.content) end
-    
-  def to_html
-    template = File.join(@context.settings.views, TEMPLATE)
-    engine = Haml::Engine.new(File.read(template))
-    @context.instance_variable_set :@reqp, self
-    engine.render(@context)
-  end
 end
