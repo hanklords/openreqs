@@ -398,12 +398,9 @@ get '/d/:doc/edit' do
 end
 
 post '/d/:doc/edit' do
-  @doc = Doc.new(mongo, params[:doc], :context => self)
-  doc_data = @doc.to_hash
-  doc_data.delete "_id"
+  doc_data = request.POST
   doc_data["_name"] = params[:doc]
   doc_data["date"] = Time.now.utc
-  doc_data["_content"] = params[:content]
   mongo["docs"].save doc_data
 
   redirect to('/d/' + URI.escape(params[:doc]))

@@ -31,8 +31,6 @@
             $(".edit #save", req).removeAttr("disabled");
           });
         });
-
-
       });
 
     :css
@@ -62,14 +60,14 @@
       .content
         = @doc.to_html
 
-        %h2 Traceability matrix
-        %ul
-          %li
-            %a{:href => to("/d/#{@doc.name}/requirements.satisfies")} satisfies
-
       .edit
         %form{:method => "post", :action => to("/d/#{@doc.name}/edit")}
           %textarea(name="content" cols=80 rows=40)= @doc.content
           %p
           %input#save(type="submit" value="Sauver")
+
+      %h2 Traceability matrix
+      %ul
+        %li
+          %a{:href => to("/d/#{@doc.name}/requirements.satisfies")} satisfies
 
