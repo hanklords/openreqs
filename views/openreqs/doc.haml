@@ -9,7 +9,7 @@
           $(".show-edit").toggle('fast');
         });
 
-        $(".title .show-edit a").click(function(e) {
+        $(".title .show-edit a, .doc > .edit .reset").click(function(e) {
           e.preventDefault();
           $(".edit, .content", $(this).parents(".doc")).toggle('fast');
         });
@@ -23,12 +23,25 @@
           e.preventDefault();
           var req = $(this).parents(".req");
           var action = $(this).attr("action");
-          $(".edit #save", req).attr("disabled", "disabled");
+          $(".edit .save", req).attr("disabled", "disabled");
 
           $.post(action, $(this).serialize(), function(data) {
             $(".content", req).replaceWith($(data).find(".content"));
             $(".edit", req).hide('fast');
-            $(".edit #save", req).removeAttr("disabled");
+            $(".edit .save", req).removeAttr("disabled");
+          });
+        });
+
+        $(".doc .edit form").submit(function(e) {
+          e.preventDefault();
+          var doc = $(this).parents(".doc");
+          var action = $(this).attr("action");
+          $(".edit #save", doc).attr("disabled", "disabled");
+
+          $.post(action, $(this).serialize(), function(data) {
+            $(".content", doc).replaceWith($(data).find(".content"));
+            $(".edit", doc).hide('fast');
+            $(".edit .save", doc).removeAttr("disabled");
           });
         });
       });
@@ -62,9 +75,10 @@
 
       .edit
         %form{:method => "post", :action => to("/d/#{@doc.name}/edit")}
-          %textarea(name="content" cols=80 rows=40)= @doc.content
+          %textarea(name="_content" cols=80 rows=40)= @doc.content
           %p
-          %input#save(type="submit" value="Sauver")
+          %input.save(type="submit" value="Save")
+          %input.reset(type="reset" value="Cancel")
 
       %h2 Traceability matrix
       %ul
