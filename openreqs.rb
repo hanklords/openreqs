@@ -427,7 +427,7 @@ get '/d/:doc/requirements.:link.csv' do
   haml :req_link_csv
 end
 
-get '/d/:doc/requirements.:link' do
+get '/d/:doc/to/:link' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
