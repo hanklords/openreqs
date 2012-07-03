@@ -20,7 +20,7 @@ class Doc
   attr_reader :options
   def initialize(db, name, options = {})
     @db, @name, @options = db, name, options
-    @requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
+    #@requirements_table = @options[:peer] ? @db["requirements.#{@options[:peer]}"] : @db["requirements"]
     @docs_table = @options[:peer] ? @db["docs.#{@options[:peer]}"] : @db["docs"]
     @options[:date] ||= Time.now.utc + 1
     @doc = @options[:doc].clone if @options[:doc]
