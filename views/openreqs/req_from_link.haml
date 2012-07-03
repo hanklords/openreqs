@@ -1,0 +1,94 @@
+%html
+  %head
+    %title #{@doc.name} - Traceability
+    %script{:type => "text/javascript", :src => to("/jquery.js")}
+    :javascript
+      $(function () {
+        var attributes_html= '<ul class="Attributes">\n';
+
+        var ths=document.getElementsByTagName("th");
+        for (var i=0;i<ths.length;i++){ 
+          var th_class=ths[i].className;
+          var th_text=ths[i].innerHTML;
+          attributes_html+='<li class='+th_class+' style="display: none; "><a href="#"> '+th_text+' </a></li>\n';
+        } 
+
+        attributes_html+= '</ul>\n';
+        $(document.body).append(attributes_html);
+
+        $("th").append(" (<a class='hide' href='#'>hide</a>)");
+
+        $("th a.hide").click(function(e) {
+            e.preventDefault();
+            // There is an offset between first line (with rowspan) and the following ones
+            var not_first_offset = #{@l0_attributes.length + 2};
+            var this_th = $(this).parents("th");
+            var index = this_th.index() + 1;
+            var attr_class = this_th.attr('class');
+
+            this_th.hide();
+            //var attribute=this_th.text();
+            $("tr.first td:nth-child(" + index + ")").hide();
+            $("tr:not(.first) td:nth-child(" + (index - not_first_offset) + ")").hide();
+            $("li."+attr_class).show();
+        });
+        $("li").click(function(e) {
+            e.preventDefault();
+            // There is an offset between first line (with rowspan) and the following ones
+            var not_first_offset = #{@l0_attributes.length + 2};
+            var attr_class = $(this).attr('class');
+            var this_th = $(document).find("th."+attr_class);
+            var index = this_th.index("th") + 1;
+
+            this_th.show();
+            //var attribute=this_th.text();
+            $("tr.first td:nth-child(" + index + ")").show();
+            $("tr:not(.first) td:nth-child(" + (index - not_first_offset) + ")").show();
+            $("li."+attr_class).hide();
+        });
+      });
+
+    :css
+      table {border-collapse: collapse;}
+      td, th {border: thin solid;}
+  %body
+    %h1
+      %a{:href => to("/d/#{@doc.name}")}= @doc.name
+      \- Traceability for
+      %span(style="font-style: italic;")= @attribute
+    %table
+      %thead
+        %tr
+          %th.source__name Name
+          %th.source__content Content
+          - @l0_attributes.each do |attr_name|
+            %th(class="source_#{attr_name}")= attr_name
+          %th.linked__name Linked name
+          %th.linked__content Linked content
+          - @l1_attributes.each do |attr_name|
+            %th(class="linked_#{attr_name}")= attr_name
+      %tbody
+        - @l0_reqs.each do |l0_req|
+          - found_req = false
+          - @l1_reqs.each do |l1_req|
+            - if l1_req[@attribute].include? l0_req.name            
+              %tr
+                %td= l0_req.name
+                %td= l0_req.content
+                - @l0_attributes.each do |attr_name|
+                  %td= l0_req[attr_name]
+                %td= l1_req.name
+                %td= l1_req.content
+                - @l1_attributes.each do |attr_name|
+                  %td= l1_req[attr_name]
+                - found_req = true
+          - if found_req == false
+            %tr
+              %td= l0_req.name
+              %td= l0_req.content
+              - @l0_attributes.each do |attr_name|
+                %td= l0_req[attr_name]
+              %td
+              %td
+              - @l1_attributes.each do |attr_name|
+                %td
