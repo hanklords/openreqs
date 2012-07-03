@@ -452,17 +452,17 @@ get '/d/:doc/from/:link' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
-   
+  
+  # Get the name of all the docs (hence all requirements) from the database
   reqs_list = @doc.docs
 
+  # Get all the docs (hence all requirements) for which @attribute is defined
   db_reqs = mongo["docs"].find({@attribute => { "$exists" => "true" }}, {:sort => ["date", :desc]}).to_a
 
   @l0_reqs_name = @doc.requirement_list
-
   @l0_reqs = @doc.requirements
 
-  puts @l0_reqs
-
+  # Get the last version of requirements that have a link to a requirement from the current document
   @l1_reqs = reqs_list.map {|req_name|
     if req = db_reqs.find {|creq| creq["_name"] == req_name}
       if @l0_reqs_name.find {|l0_req_name| req[@attribute].include? l0_req_name}
@@ -471,24 +471,11 @@ get '/d/:doc/from/:link' do
     end
   }.compact
 
-  puts @l1_reqs
-
-  @l0_reqs.each {|l0_req|
-    puts "l0: " + l0_req.name
-      @l1_reqs.each {|l1_req|
-        puts "l1 satisfies: " + l1_req[@attribute]
-        if l1_req[@attribute].include? l0_req.name
-          puts "Youhou"
-        end
-    }
-  }
-
   # List the attributes of a req
   get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq}
   
   @l0_attributes = get_req_attributes.call(@l0_reqs)
   @l1_attributes = get_req_attributes.call(@l1_reqs)
-  #@l1_reqs.map {|req| get_req_attributes.call(req)}.flatten.uniq
 
   haml :req_from_link
 end
