@@ -46,7 +46,7 @@
           });
         });
 
-        $(".doc .edit form").submit(function(e) {
+        $(".doc > .edit form").submit(function(e) {
           e.preventDefault();
           var doc = $(this).parents(".doc");
           var action = $(this).attr("action");
