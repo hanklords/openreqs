@@ -19,6 +19,20 @@
             $(".edit, .content", $(this).parents(".req")).toggle('fast');
         });
 
+        add_attribute = function(e) {
+          var li = $(this).parents("li");
+          var new_attribute = $(".new_attribute", li);
+          new_attribute.attr("name", $(this).val());
+          new_attribute.removeClass("new_attribute");
+          
+          $(this).replaceWith($(this).val());
+          
+          li.after("<li><input class='new_attribute_name' /> : <textarea class='new_attribute' /></li>");
+          $(".new_attribute_name", li.next()).change(add_attribute);
+        }
+
+        $(".req .edit form .new_attribute_name").change(add_attribute);
+
         $(".req .edit form").submit(function(e) {
           e.preventDefault();
           var req = $(this).parents(".req");
