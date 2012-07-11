@@ -2,6 +2,6 @@
   %body
     %h1= @name
     %form(method="post")
-      %textarea(name="content" cols=80 rows=40)= @content
+      %textarea(name="_content" cols=80 rows=40)= @content
       %p
       %input#save(type="submit" value="Sauver")
