@@ -437,7 +437,8 @@ get '/d/:doc/requirements' do
   linked_attributes = @doc.requirements.map {|req|
     linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
     get_req_attributes.call(linked_reqs.map {|req_name| Doc.new(mongo, req_name, :context => self) })
-  }.flatten.uniq + %w(date _name _content)
+  }.flatten.uniq
+  linked_attributes.push(*%w(date _name _content)) if not linked_attributes.empty?
   
   content_type :json
   linked_attributes.to_json
