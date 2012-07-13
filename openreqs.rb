@@ -427,6 +427,34 @@ get '/d/:doc/requirements.:link.csv' do
   haml :req_link_csv
 end
 
+get '/d/:doc/requirements' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  @attribute = params[:attributes]
+  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
+
+  linked_attributes = @doc.requirements.map {|req|
+    linked_reqs =  CreolaExtractURL.new(req[@attribute] || '').to_a
+    get_req_attributes.call(linked_reqs.map {|req_name| Doc.new(mongo, req_name, :context => self) })
+  }.flatten.uniq + %w(date _name _content)
+  
+  content_type :json
+  linked_attributes.to_json
+end
+
+get '/d/:doc/matrix' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  @reqs = @doc.requirements
+  # List the attributes of a req
+  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
+  
+  @source_attributes = get_req_attributes.call(@reqs) + %w(date _name _content)
+  haml :matrix
+end
+
 get '/d/:doc/to/:link' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)

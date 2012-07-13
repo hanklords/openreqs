@@ -1,0 +1,41 @@
+ 
+%html
+  %head
+    %title= @doc.name
+    %script{:type => "text/javascript", :src => to("/jquery.js")}
+    :javascript
+      $(function () {
+        $(".expand").click(function(e) {
+          e.preventDefault();
+          $("thead tr").append("<th>Attributes level 1</th>");
+          current_row = $(this).parents("tr");
+          var attribute = $(".attribute", current_row).text();
+
+          $.get("/d/#{@doc.name}/requirements", {attributes: attribute}, function(data) {
+            current_row.append("<td><ul><li>" + data.join("</li><li>") + "</li></ul><td>");
+          });
+
+          $(this).hide('fast');
+        });
+
+      });
+
+    :css
+      img {max-width: 80%;}
+      .req ul li p {display: inline;}
+      .req .id {font-weight: bold;}
+      .req .edit, .req .origin, .doc .edit {display: none;}
+      .show-edit {display: none;}
+  %body
+    %h1
+      %a{:href => to("/d/#{@doc.name}")}= @doc.name
+    %table
+      %thead
+        %tr
+          %th Attributes
+      %tbody
+        - @source_attributes.each do |attr_name|
+          %tr
+            %td
+              %span.attribute= attr_name
+              %a.expand(href="#") +
