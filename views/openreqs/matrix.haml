@@ -7,7 +7,6 @@
       $(function () {
         $(".expand").click(function(e) {
           e.preventDefault();
-          $("thead tr").append("<th>Attributes level 1</th>");
           current_row = $(this).parents("tr");
           var attribute = $(".attribute", current_row).text();
 
@@ -33,6 +32,7 @@
       %thead
         %tr
           %th Attributes
+          %th Attributes level 1
       %tbody
         - @source_attributes.each do |attr_name|
           %tr
