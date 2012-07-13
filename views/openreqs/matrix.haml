@@ -12,7 +12,7 @@
           var attribute = $(".attribute", current_row).text();
 
           $.get("/d/#{@doc.name}/requirements", {attributes: attribute}, function(data) {
-            current_row.append("<td><ul><li>" + data.join("</li><li>") + "</li></ul><td>");
+            current_row.append("<td><table><tr><td>" + data.join("</td></tr><tr><td>") + "</td></tr></table><td>");
           });
 
           $(this).hide('fast');
