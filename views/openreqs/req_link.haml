@@ -62,7 +62,7 @@
       td, th {border: thin solid;}
   %body
     %h1
-      %a{:href => to("/d/#{@doc.name}")}= @doc.name
+      %a{:href => to("/#{@doc.name}")}= @doc.name
       \- Traceability for
       %span(style="font-style: italic;")= @attribute
     %table

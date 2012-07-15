@@ -4,9 +4,9 @@
     %title #{@name} - History
   %body
     %h2
-      %a#main_link{:href => to("/d/#@name")}= @name
+      %a#main_link{:href => to("/#@name")}= @name
     %ul
       - @dates.each do |date|
         %li
-          %a.version{:href => to("/d/#@name/#{date.iso8601}")}= date.strftime("%F %T")
-          %a.diff{:href => to("/d/#@name/#{date.iso8601}/diff")} (diff)
+          %a.version{:href => to("/#@name/#{date.iso8601}")}= date.strftime("%F %T")
+          %a.diff{:href => to("/#@name/#{date.iso8601}/diff")} (diff)

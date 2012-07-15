@@ -153,9 +153,9 @@ class ContentHTML < CreolaHTML
     if uri =~ %r{^(http|ftp)://}
       super(uri, text, namespace)
     elsif @options[:docs].include? uri
-      super(context.to("/d/#{uri}"), text || uri, namespace)
+      super(context.to("/#{uri}"), text || uri, namespace)
     else
-      super(context.to("/d/#{uri}/edit"), text || uri, namespace)
+      super(context.to("/#{uri}/edit"), text || uri, namespace)
     end
   end
   

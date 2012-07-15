@@ -6,9 +6,9 @@
       .req .id {font-weight: bold;}
   %body
     %div
-      %a#history{:href => to("/d/#{@doc.name}/history")} History
+      %a#history{:href => to("/#{@doc.name}/history")} History
       |
-      %a#download-or{:href => to("/d/#{@doc.name}.or.gz")} Download
+      %a#download-or{:href => to("/#{@doc.name}.or.gz")} Download
 
     %h1.title= @doc.name
     = @doc.to_html

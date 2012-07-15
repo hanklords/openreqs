@@ -6,10 +6,10 @@
   %body
     %div
       - if @date.nil?
-        %a#edit{:href => to("/d/#@name/edit")} Edit the document
+        %a#edit{:href => to("/#@name/edit")} Edit the document
         |
-      %a#history{:href => to("/d/#@name/history")} History
+      %a#history{:href => to("/#@name/history")} History
       |
-      %a#download-or{:href => to("/d/#@name.or.gz")} Download
+      %a#download-or{:href => to("/#@name.or.gz")} Download
 
     = @doc.to_html

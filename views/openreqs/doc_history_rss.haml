@@ -1,7 +1,7 @@
 !!! XML
 %rss{:version=>"2.0"}
     %channel
-        %link= to("/d/#@name/history")
+        %link= to("/#@name/history")
         %title= @name
         %description History of the document '#{@name}'
         %pubDate= @date.rfc822
@@ -11,7 +11,7 @@
             - date = diff.doc_new.date
             %item
                 %pubDate= date.rfc822
-                %guid= to("/d/#@name/history##{date.iso8601}")
-                %link= to("/d/#@name/#{date.iso8601}")
+                %guid= to("/#@name/history##{date.iso8601}")
+                %link= to("/#@name/#{date.iso8601}")
                 %title= date.strftime("%F %T")
                 %description&= diff.render

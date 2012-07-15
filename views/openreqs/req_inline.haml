@@ -8,7 +8,7 @@
       = @inline.name
       %span.show-edit
         (
-        %a{:href => to("/d/#{@inline.name}/edit")} edit
+        %a{:href => to("/#{@inline.name}/edit")} edit
         )
   .content
     = @inline.content.render
@@ -21,10 +21,10 @@
         %li.origin
           origin:
           - @origin.each do |doc|
-            %a{:href => to("/d/#{doc}")}= doc
+            %a{:href => to("/#{doc}")}= doc
   - if !@date
     .edit
-      %form{:method => "post", :action => to("/d/#{@inline.name}/edit")}
+      %form{:method => "post", :action => to("/#{@inline.name}/edit")}
         %h2 Text
         %textarea(name="_content" cols=80 rows=5)= @inline.content.text
 

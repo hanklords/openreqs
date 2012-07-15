@@ -236,7 +236,7 @@ get '' do
   redirect to('/')
 end
 
-get '/d/index' do
+get '/index' do
   redirect to('/')
 end
 
@@ -265,7 +265,7 @@ get '/d' do
 }
 end
 
-get '/d/:doc.txt' do
+get '/:doc.txt' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
@@ -273,7 +273,7 @@ get '/d/:doc.txt' do
   @doc.to_txt
 end
 
-get '/d/:doc.reqif' do
+get '/:doc.reqif' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
@@ -281,7 +281,7 @@ get '/d/:doc.reqif' do
   @doc.to_reqif
 end
 
-get '/d/:doc.json' do
+get '/:doc.json' do
   if params[:with_history] == "1"
     after = Time.xmlschema(params[:after]) rescue nil
     @doc = DocVersions.new(mongo, :name => params[:doc], :after => after)
@@ -294,7 +294,7 @@ get '/d/:doc.json' do
   @doc.to_json
 end
 
-get '/d/:doc.or.gz' do
+get '/:doc.or.gz' do
   @doc = DocVersions.new(mongo, :name => params[:doc])
   not_found if !@doc.exist?
   
@@ -313,7 +313,7 @@ get '/d/:doc.or.gz' do
   or_gz.finish.string
 end
 
-get '/d/:doc' do
+get '/:doc' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   @name = @doc.name
@@ -321,7 +321,7 @@ get '/d/:doc' do
   haml :doc
 end
 
-get '/d/:doc/files/:file' do
+get '/:doc/files/:file' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
@@ -335,7 +335,7 @@ get '/d/:doc/files/:file' do
   end
 end
 
-get '/d/:doc/files/' do
+get '/:doc/files/' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
@@ -349,7 +349,7 @@ get '/d/:doc/files/' do
 }  
 end
 
-post '/d/:doc/files/' do
+post '/:doc/files/' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
@@ -364,7 +364,7 @@ post '/d/:doc/files/' do
   redirect to('/d/' + URI.escape(params[:doc]))
 end
 
-get '/d/:doc/requirements.json' do
+get '/:doc/requirements.json' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   if params[:with_history] == "1"
@@ -380,7 +380,7 @@ get '/d/:doc/requirements.json' do
   @reqs.to_json
 end
 
-post '/d/:doc/delete' do
+post '/:doc/delete' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
  
@@ -388,7 +388,7 @@ post '/d/:doc/delete' do
   redirect to('/d')
 end
 
-get '/d/:doc/edit' do
+get '/:doc/edit' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   @name = @doc.name
   @content = @doc.content
@@ -397,7 +397,7 @@ get '/d/:doc/edit' do
   haml :doc_edit
 end
 
-post '/d/:doc/edit' do
+post '/:doc/edit' do
   doc_data = request.POST
   doc_data["_name"] = params[:doc]
   doc_data["date"] = Time.now.utc
@@ -406,7 +406,7 @@ post '/d/:doc/edit' do
   redirect to('/d/' + URI.escape(params[:doc]))
 end
 
-get '/d/:doc/requirements.:link.csv' do
+get '/:doc/requirements.:link.csv' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -427,7 +427,7 @@ get '/d/:doc/requirements.:link.csv' do
   haml :req_link_csv
 end
 
-get '/d/:doc/requirements' do
+get '/:doc/requirements' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
@@ -444,7 +444,7 @@ get '/d/:doc/requirements' do
   linked_attributes.to_json
 end
 
-get '/d/:doc/matrix' do
+get '/:doc/matrix' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
@@ -456,7 +456,7 @@ get '/d/:doc/matrix' do
   haml :matrix
 end
 
-get '/d/:doc/to/:link' do
+get '/:doc/to/:link' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -477,7 +477,7 @@ get '/d/:doc/to/:link' do
   haml :req_link
 end
 
-get '/d/:doc/from/:link' do
+get '/:doc/from/:link' do
   @attribute = params[:link]
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
@@ -509,7 +509,7 @@ get '/d/:doc/from/:link' do
   haml :req_from_link
 end
 
-get '/d/:doc/history.json' do
+get '/:doc/history.json' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
@@ -525,7 +525,7 @@ get '/d/:doc/history.json' do
   @dates.map {|d| d.xmlschema(2)}.to_json
 end
 
-get '/d/:doc/history.rss' do
+get '/:doc/history.rss' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
@@ -546,7 +546,7 @@ get '/d/:doc/history.rss' do
   haml :doc_history_rss
 end
 
-get '/d/:doc/history' do
+get '/:doc/history' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
 
@@ -562,7 +562,7 @@ get '/d/:doc/history' do
   haml :doc_history
 end
 
-get '/d/:doc/:date.txt' do
+get '/:doc/:date.txt' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
@@ -571,7 +571,7 @@ get '/d/:doc/:date.txt' do
   @doc.to_txt
 end
 
-get '/d/:doc/:date.json' do
+get '/:doc/:date.json' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
@@ -580,7 +580,7 @@ get '/d/:doc/:date.json' do
   @doc.to_json
 end
 
-get '/d/:doc/:date' do
+get '/:doc/:date' do
   @date = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc = Doc.new(mongo, params[:doc], :date => @date, :context => self)
   not_found if !@doc.exist?
@@ -589,7 +589,7 @@ get '/d/:doc/:date' do
   haml :doc_version
 end
 
-get '/d/:doc/:date/diff' do
+get '/:doc/:date/diff' do
   @date = @date_a = Time.xmlschema(params[:date]) + 1 rescue not_found
   @doc_a = Doc.new(mongo, params[:doc], :date => @date_a, :context => self)
   not_found if !@doc_a.exist?

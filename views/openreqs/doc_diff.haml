@@ -9,5 +9,5 @@
       .req .edit, .req .origin {display: none}
   %body
     %h1
-      %a#history{:href => to("/d/#@name/history")}= @name
+      %a#history{:href => to("/#@name/history")}= @name
     = @diff.render
