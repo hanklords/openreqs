@@ -444,6 +444,18 @@ get '/:doc/requirements' do
   linked_attributes.to_json
 end
 
+get '/:doc/requirements/next_name' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  last_req = @doc.requirement_list.sort.last || @doc.name
+  last_req = last_req + "-0" if not last_req[/\d+(?!.*\d+)/]
+  last_req[/\d+(?!.*\d+)/] = last_req[/\d+(?!.*\d+)/].succ
+  
+  content_type :json
+  last_req
+end
+
 get '/:doc/define_matrix' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?

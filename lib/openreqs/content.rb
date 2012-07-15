@@ -49,7 +49,7 @@ class Doc
   def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
  
   def requirement_list
-    @requirement_list ||= CreolaExtractInline.new(content).to_a
+    @requirement_list ||= CreolaExtractInline.new(content).to_a.reject {|name| name.include?("/")}
   end
     
   def requirements
