@@ -361,7 +361,7 @@ post '/:doc/files/' do
     f.write upload_file[:tempfile].read
   end
   
-  redirect to('/d/' + URI.escape(params[:doc]))
+  redirect to('/' + URI.escape(params[:doc]))
 end
 
 get '/:doc/requirements.json' do
@@ -385,7 +385,7 @@ post '/:doc/delete' do
   not_found if !@doc.exist?
  
   mongo["docs"].remove "_name" => @doc.name
-  redirect to('/d')
+  redirect to('/')
 end
 
 get '/:doc/edit' do
@@ -403,7 +403,7 @@ post '/:doc/edit' do
   doc_data["date"] = Time.now.utc
   mongo["docs"].save doc_data
 
-  redirect to('/d/' + URI.escape(params[:doc]))
+  redirect to('/' + URI.escape(params[:doc]))
 end
 
 get '/:doc/requirements.:link.csv' do
