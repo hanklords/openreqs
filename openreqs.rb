@@ -470,7 +470,7 @@ end
 
 get '/:doc/matrix' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
-  not_found if !@doc.exist?
+  not_found if !@doc.exist? || !params["columns"]
   
   @columns = params["columns"].split(",")
   @reqs = @doc.requirements
