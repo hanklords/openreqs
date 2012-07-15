@@ -479,6 +479,8 @@ get '/:doc/matrix' do
       expanded_reqs << req if linked_reqs.empty?
     }
   end
+  expanded_reqs += @reqs if to.empty?
+  
   @reqs = expanded_reqs
 
   haml :matrix
