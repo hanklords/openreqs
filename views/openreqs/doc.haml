@@ -93,7 +93,7 @@
           e.preventDefault();
           var textarea = $(this).siblings("textarea");
           
-          $.get("/#{@doc.name}/requirements/next_name", function(data) {
+          $.get("#{to("/#{@doc.name}/requirements/next_name")}", function(data) {
             textarea.insertAtCaret("{{" + data + "}}\n");
           });
         });
