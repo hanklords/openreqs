@@ -444,7 +444,19 @@ get '/:doc/requirements' do
   linked_attributes.to_json
 end
 
-get '/:doc/matrix' do
+get '/:doc/define_matrix' do
+  @doc = Doc.new(mongo, params[:doc], :context => self)
+  not_found if !@doc.exist?
+  
+  @reqs = @doc.requirements
+  # List the attributes of a req
+  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
+  
+  @source_attributes = get_req_attributes.call(@reqs) + %w(date _name _content)
+  haml :define_matrix
+end
+
+get '/:doc/define_matrix' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
