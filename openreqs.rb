@@ -452,7 +452,7 @@ get '/:doc/requirements/next_name' do
   last_req = last_req + "-0" if not last_req[/\d+(?!.*\d+)/]
   last_req[/\d+(?!.*\d+)/] = last_req[/\d+(?!.*\d+)/].succ
   
-  content_type :json
+  content_type :txt
   last_req
 end
 
