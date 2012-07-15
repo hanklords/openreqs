@@ -1,0 +1,23 @@
+%html
+  %head
+    %title #{@doc.name} - Traceability
+    %script{:type => "text/javascript", :src => to("/jquery.js")}
+    :css
+      table {border-collapse: collapse;}
+      td, th {border: thin solid;}
+  %body
+    %h1
+      %a{:href => to("/#{@doc.name}")}= @doc.name
+    %table
+      %thead
+        %tr
+          - @columns.each do |attr_name|
+            %th(class="#{attr_name}")= attr_name
+      %tbody
+        - @reqs.each do |req|
+          %tr
+            - @columns.each do |attr_name|
+              - if attr_name.include?(".") && linked = req["_" + attr_name[/^\w+/]]
+                %td= linked[attr_name[/\w+$/]]
+              - else
+                %td= req[attr_name]

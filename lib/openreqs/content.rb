@@ -42,6 +42,10 @@ class Doc
     exist? ? @doc.select {|k,v| k !~ /^_/ && k != "date" } : []
   end
   
+  def clone
+    Doc.new(@db, @name, @options.merge(:doc => @doc))
+  end
+  
   def docs; @all_docs ||= @db["docs"].find({}, {:fields => "_name"}).map {|doc| doc["_name"]}.uniq end
  
   def requirement_list

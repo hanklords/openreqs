@@ -456,15 +456,31 @@ get '/:doc/define_matrix' do
   haml :define_matrix
 end
 
-get '/:doc/define_matrix' do
+get '/:doc/matrix' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
+  @columns = params["columns"].split(",")
   @reqs = @doc.requirements
-  # List the attributes of a req
-  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq }
   
-  @source_attributes = get_req_attributes.call(@reqs) + %w(date _name _content)
+  to = []
+  @columns.each {|c| to << c[/^\w+/] if c.include? "."}
+  to.uniq!
+  
+  expanded_reqs = []
+  to.each do |attr|
+    @reqs.each {|req|
+      linked_reqs =  CreolaExtractURL.new(req[attr] || '').to_a
+      linked_reqs.each {|req_name|
+        req = req.clone
+        req["_" + attr] = Doc.new(mongo, req_name, :context => self)
+        expanded_reqs << req
+      }
+      expanded_reqs << req if linked_reqs.empty?
+    }
+  end
+  @reqs = expanded_reqs
+
   haml :matrix
 end
 
