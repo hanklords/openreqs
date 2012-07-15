@@ -165,7 +165,8 @@ class ContentHTML < CreolaHTML
     elsif req = @options[:requirements].find {|creq| creq.name == url}
       DocHTML.new(req, @options.merge(:template => context.settings.req_inline_template)).to_html
     elsif url !~ %r(/)
-      link(context.to("/r/#{url}/edit"), text || url, nil)
+      req = Doc.new(context.settings.mongo, nil, @options.merge(:doc => {"_name" => url}))
+      DocHTML.new(req, @options.merge(:template => context.settings.req_inline_template)).to_html
     else
       super(url, text)
     end
