@@ -39,7 +39,7 @@ class Doc
   def content; self["_content"] || '' end
   def name; self["_name"] end
   def attributes
-    exist? ? @doc.select {|k,v| k !~ /^_/ && k != "date" } : []
+    exist? ? @doc.select {|k,v| k !~ /^_/ && k != "date" } : {}
   end
   
   def clone
