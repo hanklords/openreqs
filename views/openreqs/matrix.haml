@@ -2,6 +2,12 @@
   %head
     %title #{@doc.name} - Traceability
     %script{:type => "text/javascript", :src => to("/jquery.js")}
+    %script{:type => "text/javascript", :src => to("/openreqstables.js")}
+    :javascript
+      $(document).ready(function() {
+        initialise_table(0);
+      });
+
     :css
       table {border-collapse: collapse;}
       td, th {border: thin solid;}

@@ -543,7 +543,7 @@ get '/:doc/from/:link' do
   }.compact
 
   # List the attributes of a req
-  get_req_attributes = lambda {|reqs| reqs.map {|req| req.attributes.keys}.flatten.uniq}
+  get_req_attributes = lambda {|reqs| reqs.map {|req| Hash[req.attributes].keys}.flatten.uniq}
   
   @l0_attributes = get_req_attributes.call(@l0_reqs)
   @l1_attributes = get_req_attributes.call(@l1_reqs)

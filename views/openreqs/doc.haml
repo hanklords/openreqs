@@ -114,7 +114,7 @@
       |
       %a#download-or{:href => to("/#{@doc.name}.or.gz")} Download
       |
-      %a#download-or{:href => to("/#{@doc.name}/matrix")} Matrix view
+      %a#download-or{:href => to("/#{@doc.name}/define_matrix")} Matrix view
     .doc
       %h1.title
         = @doc.name
@@ -138,5 +138,5 @@
       %h2 Traceability matrix
       %ul
         %li
-          %a{:href => to("/#{@doc.name}/requirements.satisfies")} satisfies
+          %a{:href => to("/#{@doc.name}/to/satisfies")} satisfies
 
