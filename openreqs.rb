@@ -221,10 +221,8 @@ post '/a/import' do
     end
     
     import_json["docs"].each { |doc| doc["date"] = Time.parse(doc["date"]) }
-    import_json["reqs"].flatten.each { |req| req["date"] = Time.parse(req["date"]) }
     
     mongo["docs.#{import_peer["_name"]}"].insert import_json["docs"]
-    mongo["requirements.#{import_peer["_name"]}"].insert import_json["reqs"].flatten
     
     redirect to("/a/peers/#{import_peer["_name"]}")
   rescue Zlib::GzipFile::Error , JSON::ParserError
