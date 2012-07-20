@@ -19,7 +19,7 @@ RSpec.configure do |config|
   config.before(:all) do
     @db = Capybara.app.mongo
     @db.connection.drop_database(@db.name)
-    @docs, @requirements = @db["docs"], @db["requirements"]
+    @docs  = @db["docs"]
   end
   
   config.after(:all) do
