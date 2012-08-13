@@ -31,6 +31,8 @@
       }
       });
 
+      previous_req_name = "";
+
       $(function () {
         $("#edit").click(function(e) {
           e.preventDefault();
@@ -91,7 +93,8 @@
           e.preventDefault();
           var textarea = $(this).siblings("textarea");
           
-          $.get("#{to("/#{@doc.name}/requirements/next_name")}", function(data) {
+          $.get("#{to("/#{@doc.name}/requirements/next_name")}", {previous: previous_req_name}, function(data) {
+            previous_req_name = data;
             textarea.insertAtCaret("{{" + data + "}}\n");
           });
         });

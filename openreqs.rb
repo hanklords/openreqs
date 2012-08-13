@@ -446,7 +446,10 @@ get '/:doc/requirements/next_name' do
   @doc = Doc.new(mongo, params[:doc], :context => self)
   not_found if !@doc.exist?
   
-  last_req = @doc.requirement_list.sort.last || @doc.name
+  requirement_list = @doc.requirement_list.sort
+  requirement_list << params[:previous] if params[:previous] && !params[:previous].empty?
+  
+  last_req = requirement_list.last || @doc.name
   last_req = last_req + "-0" if not last_req[/\d+(?!.*\d+)/]
   last_req[/\d+(?!.*\d+)/] = last_req[/\d+(?!.*\d+)/].succ
   
