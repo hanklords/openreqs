@@ -474,27 +474,54 @@ get '/:doc/matrix' do
   not_found if !@doc.exist? || !params["columns"]
   
   @columns = params["columns"].split(",")
+  @sorts = params["sorts"]
+  @filters = params["filters"].split(",")
   @reqs = @doc.requirements
+  reqsToDisplay = []
   
   to = []
   @columns.each {|c| to << c[/^\w+/] if c.include? "."}
   to.uniq!
   
-  expanded_reqs = []
   to.each do |attr|
     @reqs.each {|req|
       linked_reqs =  CreolaExtractURL.new(req[attr] || '').to_a
       linked_reqs.each {|req_name|
         req = req.clone
-        req["_" + attr] = Doc.new(mongo, req_name, :context => self)
-        expanded_reqs << req
+        @columns.each {|attr_name|
+          if attr_name.include?(".")
+            linked_req= Doc.new(mongo, req_name, :context =>self)
+            req[attr_name] = linked_req[attr_name.match(/#{to}\.(\w+)/)[1]]
+          end
+        }
+        reqsToDisplay << req
       }
-      expanded_reqs << req if linked_reqs.empty?
+      reqsToDisplay << req if linked_reqs.empty?
     }
   end
-  expanded_reqs += @reqs if to.empty?
-  
-  @reqs = expanded_reqs
+  reqsToDisplay += @reqs if to.empty? 
+ 
+  if !@sorts.nil? 
+    @sorts.reverse.each do |sort|
+      sortAttr=sort.split(",")[0]
+      sortOrder=sort.split(",")[1]
+      if sortOrder == "Increasing"
+         reqsToDisplay = reqsToDisplay.sort do |req1,req2|
+           # Using Array = Array.sort instead of Array.sort! because Array.sort! provides an erroneous result (it seems sort! updates the table order during its execution)
+           [req1[sortAttr].to_s, reqsToDisplay.index(req1)] <=> [req2[sortAttr].to_s, reqsToDisplay.index(req2)]
+        end
+      elsif sortOrder == "Decreasing"
+         reqsToDisplay = reqsToDisplay.sort do |req1,req2|
+           # Using Array = Array.sort instead of Array.sort! because Array.sort! provides an erroneous result (it seems sort! updates the table order during its execution)
+           [req2[sortAttr].to_s, reqsToDisplay.index(req1)] <=> [req1[sortAttr].to_s, reqsToDisplay.index(req2)]
+        end
+      else
+        # Do Nothing
+      end
+    end
+  end
+
+  @reqs = reqsToDisplay
 
   haml :matrix
 end
