@@ -13,7 +13,7 @@
           var current_row = $(this).parents("tr");
           var attribute = $(".attribute", current_row).text();
 
-          $.get("/#{@doc.name}/requirements", {attributes: attribute}, function(data) {
+          $.get("#{to"/#{@doc.name}/requirements"}", {attributes: attribute}, function(data) {
             current_row.append("<td><table><tr><td>" + data.join("</td></tr><tr><td>") + "</td></tr></table></td>");
           });
 
