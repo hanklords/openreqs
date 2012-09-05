@@ -475,7 +475,7 @@ get '/:doc/matrix' do
   
   @columns = params["columns"].split(",")
   @sorts = params["sorts"]
-  @filters = params["filters"].split(",")
+  @filters = (params["filters"] || "").split(",")
   @reqs = @doc.requirements
   reqsToDisplay = []
   
