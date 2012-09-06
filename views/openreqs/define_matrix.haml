@@ -22,17 +22,27 @@
         });
 
         // attributes drag & drop
-        function drop_method(event, ui) {
-          var new_column = $("<td>" + ui.draggable.text() + "</td>").insertBefore(this);
+        function add_attribute(attr, pos) {
+          var new_column = $("<td>" + attr + "</td>").insertBefore(pos);
           new_column.droppable({drop: drop_method });
 
+          // build the matrix url
           var column_list = $.map($('.drop td'), function(e) {return $(e).text() });
           column_list.pop();
-          
           $("form .columns").val(column_list.join(","));
+        }
+
+        function drop_method(event, ui) {
+          add_attribute(ui.draggable.text(), this);
         }
         $(".attribute").draggable({helper: "clone", revert: "invalid" });
         $(".drop td").droppable({drop: drop_method, hoverClass: "active"  });
+
+        // attributes dblclick
+        $(".attribute").dblclick(function(e) {
+          add_attribute($(this).text(), $(".drop td.empty"));
+        });
+
       });
 
     :css
