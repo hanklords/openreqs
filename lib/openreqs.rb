@@ -2,8 +2,6 @@ require 'sinatra/base'
 require 'haml'
 require 'mongo'
 require 'time'
-require 'qu-mongo'
-require 'qu-immediate'
 require 'stringio'
 require 'zlib'
 require 'openreqs/jobs'
@@ -14,21 +12,20 @@ require 'openreqs/diff'
 class Openreqs < Sinatra::Base
 configure do
   set :root, File.expand_path("../..", __FILE__)
-  set :mongo, Mongo::Connection.new.db("openreqs")
+  set :views, File.join(root, "views", "default")
   set :doc_template, %q{= @inline.content.to_html}
   set :req_inline_template, lambda {File.read(File.join(views, 'req_inline.haml'))}
-  mime_type :pem, "application/x-pem-file"
   
-  Qu.configure do |c|
-    c.connection = Mongo::Connection.new.db(settings.mongo.name + "-qu")
-  end
+  mime_type :pem, "application/x-pem-file"
 end
 
 helpers do
-  def mongo; settings.mongo end
+  def db_name; @db_name || "openreqs" end
+  def mongo_connection; @mongo_connection ||= Mongo::Connection.new end
+  def mongo; mongo_connection.db(db_name) end
+  def enqueue(job, *data); Qu.enqueue job, db_name, *data end
 end
 
-set :views, Proc.new { File.join(root, "views", "default") }
 before {content_type :html, :charset => 'utf-8'}
 
 get '/a/key.pem' do
@@ -53,7 +50,7 @@ get '/a/peers' do
 end
 
 post '/a/peers/add' do
-  Qu.enqueue Find, params[:server]
+  enqueue Find, params[:server]
   
   redirect to("/a/peers")
 end
@@ -169,12 +166,12 @@ post '/a/peers/:peer/d/:doc/pull' do
   @doc = Doc.new(mongo, params[:doc], :peer => params[:peer], :context => self)
   not_found if !@doc.exist?
   
-  Qu.enqueue DocPull, @peer.name, @doc.name
+  enqueue DocPull, @peer.name, @doc.name
   redirect to("/a/peers/#{@peer.name}")
 end
 
 post '/a/peers/:name/sync' do
-  Qu.enqueue Sync, params[:name]
+  enqueue Sync, params[:name]
   
   redirect to("/a/peers/#{params[:name]}")  
 end
@@ -190,7 +187,7 @@ get '/a/clone' do
 end
 
 post '/a/clone' do
-  Qu.enqueue Clone, params[:url]
+  enqueue Clone, params[:url]
   ""
 end
 

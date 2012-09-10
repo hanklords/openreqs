@@ -1,4 +1,11 @@
 require 'net/http'
+require 'qu-mongo'
+require 'qu-immediate'
+
+JobsDatabase = Mongo::Connection.new
+Qu.configure do |c|
+  c.connection = Mongo::Connection.new.db("openreqs-qu")
+end
 
 class Clone
   def self.uri_escape(uri)
@@ -7,16 +14,16 @@ class Clone
     end
   end
   
-  def self.perform(url)
-    db = Sinatra::Application.mongo
-    db["docs"].remove
+  def self.perform(db_name, url)
+    mongo = JobsDatabase.db(db_name)
+    mongo["docs"].remove
     
     docs_list = Net::HTTP.get(URI.parse(url + "/d.json"))
     docs = JSON.load(docs_list)
     docs.each {|doc_name|
       doc = JSON.load(Net::HTTP.get(URI.parse(url + "/#{uri_escape(doc_name)}.json?with_history=1")))
       doc.each {|v| v["date"] = Time.parse(v["date"])}
-      db["docs"].insert doc
+      mongo["docs"].insert doc
     }
     
   end
@@ -29,8 +36,8 @@ class Find
     end
   end
   
-  def self.perform(url)
-    mongo = Sinatra::Application.mongo
+  def self.perform(db_name, url)
+    mongo = JobsDatabase.db(db_name)
     
     remote_text = Net::HTTP.get(URI.parse(url + "/a.json"))
     remote = JSON.load(remote_text)
@@ -50,8 +57,8 @@ class Sync
     end
   end
   
-  def self.perform(remote_name)
-    mongo = Sinatra::Application.mongo
+  def self.perform(db_name, remote_name)
+    mongo = JobsDatabase.db(db_name)
     
     remote = mongo["peers"].find_one("_name" => remote_name)
     doc_versions = {}
@@ -88,8 +95,8 @@ class DocPull
     end
   end
   
-  def self.perform(remote_name, doc_name)
-    mongo = Sinatra::Application.mongo
+  def self.perform(db, name, remote_name, doc_name)
+    mongo = JobsDatabase.db(db_name)
     
     last_local_doc = mongo["docs"].find_one({"_name" => doc_name}, {:fields => "date", :sort => ["date", :desc]})
     
