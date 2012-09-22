@@ -20,6 +20,8 @@ configure do
 end
 
 helpers do
+  attr_writer :db_name, :mongo_connection
+  
   def db_name; @db_name || "openreqs" end
   def mongo_connection; @mongo_connection ||= Mongo::Connection.new end
   def mongo; mongo_connection.db(db_name) end

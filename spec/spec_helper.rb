@@ -13,7 +13,7 @@ end
 Openreqs.enable :raise_errors
 Openreqs.disable :show_exceptions
 
-Capybara.app = Openreqs.new {@db_name = "openreqs-test"}
+Capybara.app = Openreqs.new {|app| app.db_name = "openreqs-test"}
 FakeWeb.allow_net_connect = false
 
 RSpec.configure do |config|
